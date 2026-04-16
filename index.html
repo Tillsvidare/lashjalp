@@ -49,12 +49,10 @@ button.small { padding: 6px 12px; font-size: 13px; }
 .progress { background: var(--border); border-radius: 8px; height: 8px; overflow: hidden; margin: 12px 0; }
 .progress-bar { background: var(--accent); height: 100%; transition: width 0.3s; width: 0%; }
 .reader { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; min-height: 80px; user-select: text; max-height: 50vh; overflow-y: auto; white-space: normal; }
-.reader .word { display: inline; padding: 2px 1px; border-radius: 3px; transition: background 0.1s; cursor: pointer; }
-.reader .word.active { background: #ffd700; color: #000; font-weight: 600; box-shadow: 0 0 0 2px #ffd700; }
-.bionic .word b { font-weight: 700; }
-.bionic .word { font-weight: 300; }
-.bionic .word.active { font-weight: 600; }
-.bionic .word.active b { font-weight: 800; }
+.reader .sentence { transition: background 0.15s; border-radius: 4px; padding: 1px 0; }
+.reader .sentence.active { background: #ffd70066; }
+.bionic .sentence { font-weight: 300; }
+.bionic .sentence b { font-weight: 700; }
 #textOutput { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); width: 100%; min-height: 200px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); resize: vertical; }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
 .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 12px; }
@@ -176,6 +174,9 @@ kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size
       <div class="setting">
         <label><input type="checkbox" id="bionicToggle"> Bionic Reading</label>
       </div>
+      <div class="setting">
+        <label><input type="checkbox" id="highlightToggle" checked> Markera text vid uppläsning</label>
+      </div>
     </div>
     <p class="hint"><kbd>Mellanslag</kbd> spela/paus &nbsp; <kbd>Esc</kbd> stopp</p>
   </div>
@@ -203,12 +204,12 @@ const rateSlider = $('rateSlider'), rateValueEl = $('rateValue');
 const fontSizeSlider = $('fontSizeSlider'), fontSizeValue = $('fontSizeValue');
 const lineHeightSlider = $('lineHeightSlider'), lineHeightValue = $('lineHeightValue');
 const themeSelect = $('themeSelect'), dyslexicFontToggle = $('dyslexicFontToggle');
-const bionicToggle = $('bionicToggle');
+const bionicToggle = $('bionicToggle'), highlightToggle = $('highlightToggle');
 const pageNav = $('pageNav'), pageInfo = $('pageInfo');
 const prevPageBtn = $('prevPageBtn'), nextPageBtn = $('nextPageBtn');
 
-let wordSpans = [];
-let ttsState = { speaking: false, paused: false, stopRequested: false, wordIndex: 0 };
+let sentenceSpans = []; // each: { el: span, text: string }
+let ttsState = { speaking: false, paused: false, stopRequested: false, sentenceIndex: 0 };
 let isEditing = false;
 
 // PDF state
@@ -451,37 +452,43 @@ copyBtn.addEventListener('click', async () => {
   } catch (err) { setStatus('Kunde inte kopiera.', 'error'); }
 });
 
-// --- Reader with bionic reading support ---
-function bionicHTML(word) {
+// --- Reader with bionic reading + sentence grouping ---
+function bionicWord(word) {
   const len = word.length;
   if (len <= 1) return `<b>${word}</b>`;
   const boldLen = Math.ceil(len / 2);
   return `<b>${word.slice(0, boldLen)}</b>${word.slice(boldLen)}`;
 }
 
+function splitSentences(text) {
+  // Split on sentence-ending punctuation followed by space or end
+  return text.match(/[^.!?]*[.!?]+[\s]?|[^.!?]+$/g) || [text];
+}
+
 function loadIntoReader() {
   const text = textOutput.value;
   if (!text.trim()) return;
   readerEl.innerHTML = '';
-  wordSpans = [];
+  sentenceSpans = [];
   const bionic = bionicToggle.checked;
   const normalized = normalizeText(text);
   const paragraphs = normalized.split(/\n\n+/);
   paragraphs.forEach((para, pi) => {
-    const words = para.trim().split(/\s+/).filter(Boolean);
-    words.forEach((word, wi) => {
+    const sentences = splitSentences(para.trim());
+    sentences.forEach(sent => {
+      const trimmed = sent.trim();
+      if (!trimmed) return;
       const span = document.createElement('span');
-      span.className = 'word';
-      span.dataset.index = wordSpans.length;
-      span.dataset.text = word;
+      span.className = 'sentence';
+      span.dataset.index = sentenceSpans.length;
       if (bionic) {
-        span.innerHTML = bionicHTML(word);
+        span.innerHTML = trimmed.split(/\s+/).map(w => bionicWord(w)).join(' ');
       } else {
-        span.textContent = word;
+        span.textContent = trimmed;
       }
       readerEl.appendChild(span);
-      wordSpans.push(span);
-      if (wi < words.length - 1) readerEl.appendChild(document.createTextNode(' '));
+      readerEl.appendChild(document.createTextNode(' '));
+      sentenceSpans.push({ el: span, text: trimmed });
     });
     if (pi < paragraphs.length - 1) {
       readerEl.appendChild(document.createElement('br'));
@@ -492,12 +499,12 @@ function loadIntoReader() {
 
 bionicToggle.addEventListener('change', () => {
   readerEl.classList.toggle('bionic', bionicToggle.checked);
-  if (wordSpans.length > 0) loadIntoReader();
+  if (sentenceSpans.length > 0) loadIntoReader();
 });
 
-// Click word to start reading from there
+// Click sentence to start reading from there
 readerEl.addEventListener('click', (e) => {
-  const span = e.target.closest('.word');
+  const span = e.target.closest('.sentence');
   if (!span) return;
   const idx = parseInt(span.dataset.index);
   if (isNaN(idx)) return;
@@ -505,7 +512,7 @@ readerEl.addEventListener('click', (e) => {
   startPlayback(idx);
 });
 
-// --- TTS: full-text with timer-based highlight fallback ---
+// --- TTS: sentence-by-sentence ---
 const TTS = (typeof window !== 'undefined' && window.speechSynthesis) ? window.speechSynthesis : null;
 
 function populateVoices() {
@@ -541,108 +548,52 @@ function getVoice() {
   return TTS ? TTS.getVoices().find(v => v.name === voiceSelect.value) || null : null;
 }
 
-// Build full text from wordSpans starting at fromIndex
-function getTextFromIndex(fromIndex) {
-  const words = [];
-  for (let i = fromIndex; i < wordSpans.length; i++) {
-    words.push(wordSpans[i].dataset.text || wordSpans[i].textContent);
-  }
-  return words.join(' ');
-}
-
-let highlightTimer = null;
-let boundaryFired = false;
-
-function startTimerHighlight(fromIndex, rate) {
-  // ~160 words/min at rate 1.0 → ~375ms per word, adjusted by rate
-  const msPerWord = 375 / rate;
-  let idx = fromIndex;
-
-  function tick() {
-    if (ttsState.stopRequested || ttsState.paused) return;
-    if (idx >= wordSpans.length) return;
-    highlightWord(idx);
-    ttsState.wordIndex = idx;
-    idx++;
-    highlightTimer = setTimeout(tick, msPerWord);
-  }
-  tick();
-}
-
-function highlightWord(idx) {
+function highlightSentence(idx) {
   clearHighlight();
-  if (idx < 0 || idx >= wordSpans.length) return;
-  const span = wordSpans[idx];
-  span.classList.add('active');
-  const rect = span.getBoundingClientRect();
+  if (!highlightToggle.checked) return;
+  if (idx < 0 || idx >= sentenceSpans.length) return;
+  const el = sentenceSpans[idx].el;
+  el.classList.add('active');
+  const rect = el.getBoundingClientRect();
   const rRect = readerEl.getBoundingClientRect();
   if (rect.bottom > rRect.bottom || rect.top < rRect.top) {
-    span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+}
+
+function speakSentence(idx) {
+  if (ttsState.stopRequested || idx >= sentenceSpans.length) { finishPlayback(); return; }
+  if (ttsState.paused) return;
+
+  ttsState.sentenceIndex = idx;
+  highlightSentence(idx);
+
+  const utter = new SpeechSynthesisUtterance(sentenceSpans[idx].text);
+  const voice = getVoice();
+  if (voice) utter.voice = voice;
+  utter.rate = parseFloat(rateSlider.value);
+  utter.pitch = 1.0;
+  utter.onend = () => speakSentence(idx + 1);
+  utter.onerror = (e) => {
+    if (e.error === 'canceled' || e.error === 'interrupted') return;
+    speakSentence(idx + 1);
+  };
+  TTS.speak(utter);
 }
 
 function startPlayback(fromIndex) {
-  if (!TTS || wordSpans.length === 0) return;
-  const startIdx = fromIndex || 0;
-  ttsState = { speaking: true, paused: false, stopRequested: false, wordIndex: startIdx };
-  boundaryFired = false;
+  if (!TTS || sentenceSpans.length === 0) return;
+  ttsState = { speaking: true, paused: false, stopRequested: false, sentenceIndex: fromIndex || 0 };
   playBtn.disabled = true;
   pauseBtn.disabled = false;
   stopBtn.disabled = false;
   playBtn.textContent = '\u25b6 Spela';
-
-  const text = getTextFromIndex(startIdx);
-  const utter = new SpeechSynthesisUtterance(text);
-  const voice = getVoice();
-  if (voice) utter.voice = voice;
-  const rate = parseFloat(rateSlider.value);
-  utter.rate = rate;
-  utter.pitch = 1.0;
-
-  // Track word boundaries via charIndex
-  const wordOffsets = [];
-  let offset = 0;
-  for (let i = startIdx; i < wordSpans.length; i++) {
-    const w = wordSpans[i].dataset.text || wordSpans[i].textContent;
-    wordOffsets.push({ spanIdx: i, start: offset, end: offset + w.length });
-    offset += w.length + 1; // +1 for space
-  }
-
-  utter.onboundary = (e) => {
-    if (e.name !== 'word') return;
-    boundaryFired = true;
-    // Cancel timer fallback if boundary events are working
-    if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null; }
-    const match = wordOffsets.find(wo => e.charIndex >= wo.start && e.charIndex < wo.end);
-    if (match) {
-      highlightWord(match.spanIdx);
-      ttsState.wordIndex = match.spanIdx;
-    }
-  };
-
-  utter.onend = () => finishPlayback();
-  utter.onerror = (e) => {
-    if (e.error !== 'canceled' && e.error !== 'interrupted') {
-      setStatus(`Fel vid uppläsning: ${e.error}`, 'error');
-    }
-    finishPlayback();
-  };
-
-  TTS.speak(utter);
-
-  // Start timer-based fallback after a short delay; cancel if onboundary fires
-  highlightWord(startIdx);
-  setTimeout(() => {
-    if (!boundaryFired && ttsState.speaking && !ttsState.stopRequested) {
-      startTimerHighlight(startIdx + 1, rate);
-    }
-  }, 400);
+  speakSentence(ttsState.sentenceIndex);
 }
 
 function finishPlayback() {
-  if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null; }
   clearHighlight();
-  ttsState = { speaking: false, paused: false, stopRequested: false, wordIndex: 0 };
+  ttsState = { speaking: false, paused: false, stopRequested: false, sentenceIndex: 0 };
   playBtn.disabled = false; pauseBtn.disabled = true; stopBtn.disabled = true;
   playBtn.textContent = '\u25b6 Spela';
 }
@@ -650,7 +601,6 @@ function finishPlayback() {
 function stopPlayback() {
   if (!TTS) return;
   ttsState.stopRequested = true; ttsState.paused = false;
-  if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null; }
   TTS.cancel(); finishPlayback();
 }
 
@@ -659,7 +609,7 @@ playBtn.addEventListener('click', () => {
   if (ttsState.paused) {
     ttsState.paused = false;
     playBtn.disabled = true; playBtn.textContent = '\u25b6 Spela'; pauseBtn.disabled = false;
-    startPlayback(ttsState.wordIndex);
+    speakSentence(ttsState.sentenceIndex);
     return;
   }
   startPlayback(0);
@@ -668,13 +618,12 @@ playBtn.addEventListener('click', () => {
 pauseBtn.addEventListener('click', () => {
   if (!TTS) return;
   ttsState.paused = true;
-  if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null; }
   TTS.cancel();
   playBtn.disabled = false; playBtn.textContent = '\u25b6 Fortsätt'; pauseBtn.disabled = true;
 });
 
 stopBtn.addEventListener('click', stopPlayback);
-function clearHighlight() { wordSpans.forEach(s => s.classList.remove('active')); }
+function clearHighlight() { sentenceSpans.forEach(s => s.el.classList.remove('active')); }
 
 // --- Settings ---
 rateSlider.addEventListener('input', () => { rateValueEl.textContent = parseFloat(rateSlider.value).toFixed(1); });
