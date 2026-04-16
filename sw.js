@@ -9,7 +9,7 @@
  * - Övrigt: network-first.
  */
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const APP_SHELL_CACHE = `ocr-lashjalp-shell-${VERSION}`;
 const RUNTIME_CACHE = `ocr-lashjalp-runtime-${VERSION}`;
 
