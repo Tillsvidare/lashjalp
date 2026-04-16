@@ -104,6 +104,16 @@ kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size
         </select>
       </div>
       <div class="setting">
+        <label for="psmSelect">Sidlayout</label>
+        <select id="psmSelect">
+          <option value="6">En spalt (standard)</option>
+          <option value="3">Auto (blandat)</option>
+          <option value="4">En spalt, varierande text</option>
+          <option value="1">Auto med kolumndetektering</option>
+          <option value="11">Gles text</option>
+        </select>
+      </div>
+      <div class="setting">
         <label><input type="checkbox" id="preprocessToggle" checked> Förbehandla bild</label>
       </div>
     </div>
@@ -192,7 +202,7 @@ const fileInput = $('fileInput'), cameraInput = $('cameraInput');
 const cameraBtn = $('cameraBtn'), fileBtn = $('fileBtn');
 const preview = $('preview'), previewCanvas = $('previewCanvas');
 const ocrBtn = $('ocrBtn'), clearBtn = $('clearBtn');
-const langSelect = $('langSelect'), preprocessToggle = $('preprocessToggle');
+const langSelect = $('langSelect'), psmSelect = $('psmSelect'), preprocessToggle = $('preprocessToggle');
 const progressWrap = $('progressWrap'), progressBar = $('progressBar'), statusEl = $('status');
 const resultCard = $('resultCard'), textOutput = $('textOutput');
 const readerView = $('readerView'), editView = $('editView');
@@ -406,7 +416,7 @@ ocrBtn.addEventListener('click', async () => {
       },
       errorHandler: err => console.error('[OCR]', err)
     });
-    await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
+    await worker.setParameters({ tessedit_pageseg_mode: psmSelect.value, preserve_interword_spaces: '1' });
     const { data } = await worker.recognize(previewCanvas);
     const cleanText = data.text.trim();
     if (!cleanText) {
