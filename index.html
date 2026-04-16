@@ -441,13 +441,17 @@ function loadIntoReader() {
   if (!text.trim()) return;
   reader.innerHTML = '';
   wordSpans = [];
-  // Split on double newlines to find real paragraphs; single newlines become spaces
-  const paragraphs = text.split(/\n{2,}/);
+  // Normalize: join hyphenated line breaks, collapse single newlines to spaces,
+  // keep paragraph breaks (double newlines)
+  const normalized = text
+    .replace(/-\s*\n\s*/g, '')      // "ex-\nempel" → "exempel"
+    .replace(/\n{2,}/g, '\n\n')     // normalize paragraph breaks
+    .replace(/([^\n])\n([^\n])/g, '$1 $2')  // single newline → space
+    .replace(/ {2,}/g, ' ');         // collapse multiple spaces
+  const paragraphs = normalized.split(/\n\n+/);
   let charIndex = 0;
   paragraphs.forEach((para, pi) => {
-    // Replace single newlines with spaces within a paragraph
-    const normalized = para.replace(/\n/g, ' ').replace(/ {2,}/g, ' ');
-    const tokens = normalized.match(/\S+|\s+/g) || [];
+    const tokens = para.trim().match(/\S+|\s+/g) || [];
     tokens.forEach(token => {
       if (/\S/.test(token)) {
         const span = document.createElement('span');
@@ -458,14 +462,12 @@ function loadIntoReader() {
         reader.appendChild(span);
         wordSpans.push(span);
       } else {
-        reader.appendChild(document.createTextNode(token));
+        reader.appendChild(document.createTextNode(' '));
       }
       charIndex += token.length;
     });
-    // Account for the original newlines between paragraphs
     if (pi < paragraphs.length - 1) {
-      const nlMatch = text.slice(charIndex).match(/^\n{2,}/);
-      if (nlMatch) charIndex += nlMatch[0].length;
+      charIndex += 2; // account for \n\n
       reader.appendChild(document.createElement('br'));
       reader.appendChild(document.createElement('br'));
     }
@@ -525,11 +527,17 @@ playBtn.addEventListener('click', () => {
     pauseBtn.disabled = false;
     return;
   }
-  const text = textOutput.value.trim();
-  if (!text) return;
+  const rawText = textOutput.value.trim();
+  if (!rawText) return;
   TTS.cancel();
   clearHighlight();
-  const utter = new SpeechSynthesisUtterance(text);
+  // Use same normalization as the reader for consistent highlighting
+  const ttsText = rawText
+    .replace(/-\s*\n\s*/g, '')
+    .replace(/\n{2,}/g, '\n\n')
+    .replace(/([^\n])\n([^\n])/g, '$1 $2')
+    .replace(/ {2,}/g, ' ');
+  const utter = new SpeechSynthesisUtterance(ttsText);
   const selectedVoice = TTS.getVoices().find(v => v.name === voiceSelect.value);
   if (selectedVoice) utter.voice = selectedVoice;
   utter.rate = parseFloat(rateSlider.value);
