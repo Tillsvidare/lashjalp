@@ -51,7 +51,7 @@ button.secondary:hover:not(:disabled) { background: rgba(0,0,0,0.05); }
 .progress { background: var(--border); border-radius: 8px; height: 8px; overflow: hidden; margin: 12px 0; }
 .progress-bar { background: var(--accent); height: 100%; transition: width 0.3s; width: 0%; }
 #textOutput { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); width: 100%; min-height: 200px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); resize: vertical; }
-.reader { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; min-height: 100px; user-select: text; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+.reader { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; min-height: 100px; user-select: text; max-height: 400px; overflow-y: auto; white-space: normal; }
 .reader .word { display: inline; padding: 2px 0; border-radius: 3px; transition: background 0.15s; }
 .reader .word.active { background: #ffd700; color: #000; font-weight: 600; box-shadow: 0 0 0 2px #ffd700; }
 .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 16px; }
@@ -441,21 +441,34 @@ function loadIntoReader() {
   if (!text.trim()) return;
   reader.innerHTML = '';
   wordSpans = [];
-  const tokens = text.match(/\S+|\s+/g) || [];
+  // Split on double newlines to find real paragraphs; single newlines become spaces
+  const paragraphs = text.split(/\n{2,}/);
   let charIndex = 0;
-  tokens.forEach(token => {
-    if (/\S/.test(token)) {
-      const span = document.createElement('span');
-      span.className = 'word';
-      span.textContent = token;
-      span.dataset.start = charIndex;
-      span.dataset.end = charIndex + token.length;
-      reader.appendChild(span);
-      wordSpans.push(span);
-    } else {
-      reader.appendChild(document.createTextNode(token));
+  paragraphs.forEach((para, pi) => {
+    // Replace single newlines with spaces within a paragraph
+    const normalized = para.replace(/\n/g, ' ').replace(/ {2,}/g, ' ');
+    const tokens = normalized.match(/\S+|\s+/g) || [];
+    tokens.forEach(token => {
+      if (/\S/.test(token)) {
+        const span = document.createElement('span');
+        span.className = 'word';
+        span.textContent = token;
+        span.dataset.start = charIndex;
+        span.dataset.end = charIndex + token.length;
+        reader.appendChild(span);
+        wordSpans.push(span);
+      } else {
+        reader.appendChild(document.createTextNode(token));
+      }
+      charIndex += token.length;
+    });
+    // Account for the original newlines between paragraphs
+    if (pi < paragraphs.length - 1) {
+      const nlMatch = text.slice(charIndex).match(/^\n{2,}/);
+      if (nlMatch) charIndex += nlMatch[0].length;
+      reader.appendChild(document.createElement('br'));
+      reader.appendChild(document.createElement('br'));
     }
-    charIndex += token.length;
   });
   readerCard.classList.remove('hidden');
 }
