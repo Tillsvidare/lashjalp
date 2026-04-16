@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>OCR Läshjälp</title>
+<meta name="description" content="Tolkar text från bilder och läser upp högt. Hjälp för elever med lässvårigheter.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#fdf6e3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="OCR Läshjälp">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<style>
+:root {
+  --bg: #fdf6e3;
+  --surface: #fffbf0;
+  --ink: #1a1a1a;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --border: #d4cfc0;
+  --muted: #6b6b6b;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --font-size: 20px;
+  --line-height: 1.8;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+[data-theme="dark"] { --bg:#1a1a1a; --surface:#262626; --ink:#f5f5f5; --border:#404040; --muted:#a0a0a0; }
+[data-theme="highcontrast"] { --bg:#000; --surface:#0a0a0a; --ink:#fff; --accent:#ffff00; --accent-hover:#dddd00; --border:#fff; --muted:#ccc; }
+* { box-sizing: border-box; }
+body { font-family: var(--font-family); font-size: 16px; background: var(--bg); color: var(--ink); margin: 0; padding: 20px; min-height: 100vh; }
+.container { max-width: 960px; margin: 0 auto; }
+header { margin-bottom: 24px; }
+h1 { font-size: 28px; margin: 0 0 8px; }
+.subtitle { color: var(--muted); margin: 0; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+.card h2 { margin: 0 0 16px; font-size: 18px; }
+.dropzone { border: 2px dashed var(--border); border-radius: 12px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface); display: block; }
+.dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: rgba(37, 99, 235, 0.05); }
+.dropzone p { margin: 8px 0; color: var(--muted); }
+.dropzone .primary-text { font-size: 18px; color: var(--ink); font-weight: 500; }
+input[type="file"] { display: none; }
+button { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background 0.2s; font-family: inherit; }
+button:hover:not(:disabled) { background: var(--accent-hover); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--border); }
+button.secondary:hover:not(:disabled) { background: rgba(0,0,0,0.05); }
+.progress { background: var(--border); border-radius: 8px; height: 8px; overflow: hidden; margin: 12px 0; }
+.progress-bar { background: var(--accent); height: 100%; transition: width 0.3s; width: 0%; }
+#textOutput { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); width: 100%; min-height: 200px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); resize: vertical; }
+.reader { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; min-height: 100px; user-select: text; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+.reader .word { display: inline; padding: 2px 0; border-radius: 3px; transition: background 0.15s; }
+.reader .word.active { background: #ffd700; color: #000; font-weight: 600; box-shadow: 0 0 0 2px #ffd700; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 16px; }
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px; }
+.setting { display: flex; flex-direction: column; gap: 6px; }
+.setting label { font-size: 14px; color: var(--muted); }
+.setting select, .setting input[type="range"] { padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); font-family: inherit; font-size: 14px; }
+.setting label:has(input[type="checkbox"]) { color: var(--ink); font-size: 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.status { padding: 8px 12px; border-radius: 6px; font-size: 14px; margin: 8px 0; }
+.status.info { background: rgba(37,99,235,0.1); color: var(--accent); }
+.status.error { background: rgba(220,38,38,0.1); color: var(--danger); }
+.status.success { background: rgba(22,163,74,0.1); color: var(--success); }
+.hidden { display: none !important; }
+.log { background: #111; color: #0f0; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; padding: 12px; border-radius: 6px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; margin-top: 12px; line-height: 1.5; }
+.log-toggle { background: transparent; color: var(--muted); border: none; padding: 4px 0; cursor: pointer; font-size: 13px; text-decoration: underline; }
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/gh/antijingoist/open-dyslexic@master/compiled/OpenDyslexic-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-display: swap;
+}
+.dyslexic-font { --font-family: 'OpenDyslexic', sans-serif; }
+kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: monospace; }
+.hint { color: var(--muted); font-size: 13px; margin-top: 12px; }
+.preview-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.preview-compare > div { display: flex; flex-direction: column; }
+.preview-compare .label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.preview-compare img, .preview-compare canvas { max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border); background: #fff; }
+@media (max-width: 600px) { .preview-compare { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+      <div>
+        <h1>OCR Läshjälp</h1>
+        <p class="subtitle">Ladda upp en bild eller skannad sida. Texten tolkas och läses upp högt.</p>
+      </div>
+      <button id="installBtn" class="secondary hidden" style="white-space:nowrap;">📱 Installera</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>1. Ladda upp bild</h2>
+    <label for="fileInput" class="dropzone" id="dropzone">
+      <p class="primary-text">Dra hit en bild eller klicka för att välja</p>
+      <p>JPG, PNG, WEBP, BMP</p>
+    </label>
+    <input type="file" id="fileInput" accept="image/*">
+
+    <div class="preview-compare hidden" id="previewCompare">
+      <div>
+        <span class="label">Original</span>
+        <img id="preview" alt="Original">
+      </div>
+      <div>
+        <span class="label">Förbehandlad (skickas till OCR)</span>
+        <canvas id="previewCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="settings">
+      <div class="setting">
+        <label for="langSelect">Språk</label>
+        <select id="langSelect">
+          <option value="swe">Svenska</option>
+          <option value="eng">Engelska</option>
+          <option value="swe+eng">Svenska + Engelska</option>
+          <option value="nor">Norska</option>
+          <option value="dan">Danska</option>
+          <option value="deu">Tyska</option>
+        </select>
+      </div>
+      <div class="setting">
+        <label for="psmSelect">Sidtyp (PSM)</label>
+        <select id="psmSelect">
+          <option value="3">Auto (standard)</option>
+          <option value="6" selected>Enhetligt textblock (bra för böcker)</option>
+          <option value="4">En kolumn, varierande storlek</option>
+          <option value="1">Auto med OSD</option>
+          <option value="11">Gles text</option>
+        </select>
+      </div>
+      <div class="setting">
+        <label>
+          <input type="checkbox" id="preprocessToggle" checked>
+          Förbehandla bild (gråskala + kontrast)
+        </label>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="ocrBtn" disabled>Tolka text</button>
+      <button id="clearBtn" class="secondary" disabled>Rensa</button>
+    </div>
+    <div class="progress hidden" id="progressWrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div id="status"></div>
+    <button class="log-toggle" id="logToggle">Visa teknisk logg</button>
+    <div class="log hidden" id="log"></div>
+    <p class="hint">Första gången ett språk används laddas ca 10-15 MB språkdata ner. Därefter cachas den lokalt.</p>
+  </div>
+
+  <div class="card hidden" id="textCard">
+    <h2>2. Tolkad text (redigerbar)</h2>
+    <textarea id="textOutput" placeholder="Tolkad text visas här. Du kan redigera felaktigheter innan du lyssnar."></textarea>
+    <div class="controls">
+      <button id="loadToReaderBtn">Uppdatera läsaren</button>
+      <button id="copyBtn" class="secondary">Kopiera</button>
+      <button id="downloadBtn" class="secondary">Ladda ner .txt</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="readerCard">
+    <h2>3. Lyssna</h2>
+    <div class="reader" id="reader"></div>
+    <div class="controls">
+      <button id="playBtn">▶ Spela</button>
+      <button id="pauseBtn" class="secondary" disabled>⏸ Paus</button>
+      <button id="stopBtn" class="secondary" disabled>⏹ Stopp</button>
+    </div>
+    <div class="settings">
+      <div class="setting">
+        <label for="voiceSelect">Röst</label>
+        <select id="voiceSelect"></select>
+      </div>
+      <div class="setting">
+        <label for="rateSlider">Hastighet: <span id="rateValue">1.0</span>x</label>
+        <input type="range" id="rateSlider" min="0.5" max="1.8" step="0.1" value="1.0">
+      </div>
+      <div class="setting">
+        <label for="pitchSlider">Tonhöjd: <span id="pitchValue">1.0</span></label>
+        <input type="range" id="pitchSlider" min="0.5" max="1.5" step="0.1" value="1.0">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Läsbarhet</h2>
+    <div class="settings">
+      <div class="setting">
+        <label for="fontSizeSlider">Textstorlek: <span id="fontSizeValue">20</span>px</label>
+        <input type="range" id="fontSizeSlider" min="14" max="40" step="1" value="20">
+      </div>
+      <div class="setting">
+        <label for="lineHeightSlider">Radavstånd: <span id="lineHeightValue">1.8</span></label>
+        <input type="range" id="lineHeightSlider" min="1.2" max="2.5" step="0.1" value="1.8">
+      </div>
+      <div class="setting">
+        <label for="themeSelect">Tema</label>
+        <select id="themeSelect">
+          <option value="light">Ljust (varmt papper)</option>
+          <option value="dark">Mörkt</option>
+          <option value="highcontrast">Hög kontrast</option>
+        </select>
+      </div>
+      <div class="setting">
+        <label>
+          <input type="checkbox" id="dyslexicFontToggle">
+          OpenDyslexic-teckensnitt
+        </label>
+      </div>
+    </div>
+    <p class="hint">Tangentbordsgenvägar: <kbd>Mellanslag</kbd> spela/paus, <kbd>Esc</kbd> stopp</p>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fileInput = $('fileInput'), dropzone = $('dropzone'), preview = $('preview');
+const previewCompare = $('previewCompare'), previewCanvas = $('previewCanvas');
+const ocrBtn = $('ocrBtn'), clearBtn = $('clearBtn');
+const langSelect = $('langSelect'), psmSelect = $('psmSelect'), preprocessToggle = $('preprocessToggle');
+const progressWrap = $('progressWrap'), progressBar = $('progressBar'), status = $('status');
+const logToggle = $('logToggle'), logEl = $('log');
+const textCard = $('textCard'), textOutput = $('textOutput');
+const loadToReaderBtn = $('loadToReaderBtn'), copyBtn = $('copyBtn'), downloadBtn = $('downloadBtn');
+const readerCard = $('readerCard'), reader = $('reader');
+const playBtn = $('playBtn'), pauseBtn = $('pauseBtn'), stopBtn = $('stopBtn');
+const voiceSelect = $('voiceSelect');
+const rateSlider = $('rateSlider'), rateValue = $('rateValue');
+const pitchSlider = $('pitchSlider'), pitchValue = $('pitchValue');
+const fontSizeSlider = $('fontSizeSlider'), fontSizeValue = $('fontSizeValue');
+const lineHeightSlider = $('lineHeightSlider'), lineHeightValue = $('lineHeightValue');
+const themeSelect = $('themeSelect'), dyslexicFontToggle = $('dyslexicFontToggle');
+
+let currentImage = null;
+let wordSpans = [];
+let isPaused = false;
+
+function setStatus(msg, type = 'info') {
+  status.innerHTML = msg ? `<div class="status ${type}">${msg}</div>` : '';
+}
+function log(msg) {
+  const time = new Date().toLocaleTimeString();
+  const line = `[${time}] ${typeof msg === 'object' ? JSON.stringify(msg) : msg}`;
+  logEl.textContent += line + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log('[OCR]', msg);
+}
+
+logToggle.addEventListener('click', () => {
+  logEl.classList.toggle('hidden');
+  logToggle.textContent = logEl.classList.contains('hidden') ? 'Visa teknisk logg' : 'Dölj teknisk logg';
+});
+
+['dragenter', 'dragover'].forEach(ev => {
+  dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+});
+['dragleave', 'drop'].forEach(ev => {
+  dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+});
+dropzone.addEventListener('drop', e => {
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) handleFile(file);
+});
+
+function handleFile(file) {
+  if (!file.type.startsWith('image/')) {
+    setStatus('Filen är inte en bild.', 'error');
+    return;
+  }
+  log(`Fil vald: ${file.name}, ${(file.size/1024).toFixed(0)} KB, typ ${file.type}`);
+  currentImage = file;
+  const fr = new FileReader();
+  fr.onload = e => {
+    preview.src = e.target.result;
+    preview.onload = () => {
+      previewCompare.classList.remove('hidden');
+      renderPreprocessedPreview();
+    };
+  };
+  fr.readAsDataURL(file);
+  ocrBtn.disabled = false;
+  clearBtn.disabled = false;
+  setStatus(`Bild laddad: ${file.name}`, 'success');
+}
+
+preprocessToggle.addEventListener('change', renderPreprocessedPreview);
+
+function renderPreprocessedPreview() {
+  if (!preview.src || !preview.complete || !preview.naturalWidth) return;
+  const w = preview.naturalWidth, h = preview.naturalHeight;
+  const targetWidth = Math.max(w, 1500);
+  const scale = targetWidth / w;
+  const sw = Math.round(w * scale);
+  const sh = Math.round(h * scale);
+  previewCanvas.width = sw;
+  previewCanvas.height = sh;
+  const ctx = previewCanvas.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(preview, 0, 0, sw, sh);
+
+  if (preprocessToggle.checked) {
+    const imgData = ctx.getImageData(0, 0, sw, sh);
+    const d = imgData.data;
+    let min = 255, max = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const g = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+      d[i] = d[i+1] = d[i+2] = g;
+      if (g < min) min = g;
+      if (g > max) max = g;
+    }
+    const range = Math.max(max - min, 1);
+    for (let i = 0; i < d.length; i += 4) {
+      const v = Math.round(((d[i] - min) / range) * 255);
+      d[i] = d[i+1] = d[i+2] = v;
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+  log(`Förhandsvisning: ${sw}x${sh}px, förbehandling ${preprocessToggle.checked ? 'på' : 'av'}`);
+}
+
+clearBtn.addEventListener('click', () => {
+  currentImage = null;
+  preview.src = '';
+  previewCompare.classList.add('hidden');
+  ocrBtn.disabled = true;
+  clearBtn.disabled = true;
+  fileInput.value = '';
+  setStatus('');
+  logEl.textContent = '';
+});
+
+ocrBtn.addEventListener('click', async () => {
+  if (!currentImage) return;
+  ocrBtn.disabled = true;
+  clearBtn.disabled = true;
+  progressWrap.classList.remove('hidden');
+  progressBar.style.width = '0%';
+  logEl.textContent = '';
+  setStatus('Startar OCR-motor...', 'info');
+
+  const langs = langSelect.value.split('+');
+  log(`Språk: ${langs.join(', ')}, PSM: ${psmSelect.value}`);
+
+  let worker;
+  try {
+    log('Skapar Tesseract worker...');
+    worker = await Tesseract.createWorker(langs, 1, {
+      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1',
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+      logger: m => {
+        log(m);
+        if (m.status === 'recognizing text') {
+          progressBar.style.width = (m.progress * 100) + '%';
+          setStatus(`Tolkar text... ${Math.round(m.progress * 100)}%`, 'info');
+        } else if (m.status && m.progress !== undefined) {
+          setStatus(`${m.status}... ${Math.round(m.progress * 100)}%`, 'info');
+        }
+      },
+      errorHandler: err => log(`WORKER ERROR: ${err}`)
+    });
+
+    log('Worker skapad. Sätter parametrar...');
+    await worker.setParameters({
+      tessedit_pageseg_mode: psmSelect.value,
+      preserve_interword_spaces: '1'
+    });
+
+    log('Kör recognize() på förbehandlad canvas...');
+    const { data } = await worker.recognize(previewCanvas);
+
+    log(`Klart. Text: ${data.text.length} tecken, konfidens: ${data.confidence}`);
+    log(`Första 200 tecken: "${data.text.substring(0, 200).replace(/\n/g, '\\n')}"`);
+
+    const cleanText = data.text.trim();
+    if (!cleanText) {
+      setStatus(`OCR körde klart men hittade ingen text. Konfidens: ${Math.round(data.confidence)}%. Prova: slå av/på förbehandling, byt PSM-läge, eller kontrollera att bilden är rak och skarp.`, 'error');
+      textOutput.value = '';
+    } else {
+      textOutput.value = cleanText;
+      textCard.classList.remove('hidden');
+      setStatus(`Klart. ${cleanText.length} tecken, konfidens ${Math.round(data.confidence)}%.`, 'success');
+      loadIntoReader();
+      readerCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  } catch (err) {
+    log(`FEL: ${err.message || err}`);
+    log(`Stack: ${err.stack || '(ingen stack)'}`);
+    setStatus(`Fel: ${err.message || err}. Se teknisk logg nedan.`, 'error');
+    logEl.classList.remove('hidden');
+    logToggle.textContent = 'Dölj teknisk logg';
+  } finally {
+    if (worker) {
+      try { await worker.terminate(); log('Worker avslutad.'); }
+      catch (e) { log(`Kunde ej avsluta worker: ${e}`); }
+    }
+    progressWrap.classList.add('hidden');
+    ocrBtn.disabled = false;
+    clearBtn.disabled = false;
+  }
+});
+
+copyBtn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(textOutput.value);
+    const orig = copyBtn.textContent;
+    copyBtn.textContent = 'Kopierat!';
+    setTimeout(() => copyBtn.textContent = orig, 1500);
+  } catch (err) {
+    setStatus('Kunde inte kopiera.', 'error');
+  }
+});
+
+downloadBtn.addEventListener('click', () => {
+  const blob = new Blob([textOutput.value], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ocr-text.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+loadToReaderBtn.addEventListener('click', loadIntoReader);
+
+function loadIntoReader() {
+  const text = textOutput.value;
+  if (!text.trim()) return;
+  reader.innerHTML = '';
+  wordSpans = [];
+  const tokens = text.match(/\S+|\s+/g) || [];
+  let charIndex = 0;
+  tokens.forEach(token => {
+    if (/\S/.test(token)) {
+      const span = document.createElement('span');
+      span.className = 'word';
+      span.textContent = token;
+      span.dataset.start = charIndex;
+      span.dataset.end = charIndex + token.length;
+      reader.appendChild(span);
+      wordSpans.push(span);
+    } else {
+      reader.appendChild(document.createTextNode(token));
+    }
+    charIndex += token.length;
+  });
+  readerCard.classList.remove('hidden');
+}
+
+const TTS = (typeof window !== 'undefined' && window.speechSynthesis) ? window.speechSynthesis : null;
+
+function populateVoices() {
+  if (!TTS) return;
+  const voices = TTS.getVoices();
+  const currentSelected = voiceSelect.value;
+  voiceSelect.innerHTML = '';
+  const sorted = [...voices].sort((a, b) => {
+    const aSv = a.lang.startsWith('sv') ? 0 : 1;
+    const bSv = b.lang.startsWith('sv') ? 0 : 1;
+    if (aSv !== bSv) return aSv - bSv;
+    return a.lang.localeCompare(b.lang);
+  });
+  sorted.forEach(voice => {
+    const opt = document.createElement('option');
+    opt.value = voice.name;
+    opt.textContent = `${voice.name} (${voice.lang})`;
+    voiceSelect.appendChild(opt);
+  });
+  if (currentSelected && sorted.find(v => v.name === currentSelected)) {
+    voiceSelect.value = currentSelected;
+  } else {
+    const svVoice = sorted.find(v => v.lang.startsWith('sv'));
+    if (svVoice) voiceSelect.value = svVoice.name;
+  }
+}
+
+if (TTS) {
+  try { populateVoices(); } catch (e) { log('populateVoices fel: ' + e.message); }
+  if (TTS.onvoiceschanged !== undefined) {
+    TTS.onvoiceschanged = populateVoices;
+  }
+} else {
+  log('VARNING: speechSynthesis ej tillgänglig i denna miljö. Ladda ner filen och öppna i Chrome/Edge för uppläsning.');
+  playBtn.disabled = true;
+  playBtn.title = 'Uppläsning stöds inte i denna miljö';
+  const opt = document.createElement('option');
+  opt.textContent = 'Ingen röst tillgänglig i denna miljö';
+  voiceSelect.appendChild(opt);
+  voiceSelect.disabled = true;
+}
+
+playBtn.addEventListener('click', () => {
+  if (!TTS) { setStatus('Uppläsning stöds inte här. Ladda ner HTML-filen och öppna i Chrome/Edge.', 'error'); return; }
+  if (isPaused) {
+    TTS.resume();
+    isPaused = false;
+    playBtn.disabled = true;
+    playBtn.textContent = '▶ Spela';
+    pauseBtn.disabled = false;
+    return;
+  }
+  const text = textOutput.value.trim();
+  if (!text) return;
+  TTS.cancel();
+  clearHighlight();
+  const utter = new SpeechSynthesisUtterance(text);
+  const selectedVoice = TTS.getVoices().find(v => v.name === voiceSelect.value);
+  if (selectedVoice) utter.voice = selectedVoice;
+  utter.rate = parseFloat(rateSlider.value);
+  utter.pitch = parseFloat(pitchSlider.value);
+  utter.onboundary = (e) => {
+    if (e.name === 'word' || e.charIndex !== undefined) highlightAt(e.charIndex);
+  };
+  utter.onend = () => {
+    clearHighlight();
+    playBtn.disabled = false;
+    pauseBtn.disabled = true;
+    stopBtn.disabled = true;
+    playBtn.textContent = '▶ Spela';
+    isPaused = false;
+  };
+  utter.onerror = (e) => {
+    if (e.error !== 'canceled' && e.error !== 'interrupted') {
+      setStatus(`Fel vid uppläsning: ${e.error}`, 'error');
+    }
+    clearHighlight();
+    playBtn.disabled = false;
+    pauseBtn.disabled = true;
+    stopBtn.disabled = true;
+    playBtn.textContent = '▶ Spela';
+  };
+  TTS.speak(utter);
+  playBtn.disabled = true;
+  pauseBtn.disabled = false;
+  stopBtn.disabled = false;
+});
+
+pauseBtn.addEventListener('click', () => {
+  if (!TTS) return;
+  TTS.pause();
+  isPaused = true;
+  playBtn.disabled = false;
+  playBtn.textContent = '▶ Fortsätt';
+  pauseBtn.disabled = true;
+});
+
+stopBtn.addEventListener('click', () => {
+  if (!TTS) return;
+  TTS.cancel();
+  clearHighlight();
+  playBtn.disabled = false;
+  pauseBtn.disabled = true;
+  stopBtn.disabled = true;
+  playBtn.textContent = '▶ Spela';
+  isPaused = false;
+});
+
+function highlightAt(charIndex) {
+  clearHighlight();
+  const word = wordSpans.find(s => {
+    const start = parseInt(s.dataset.start);
+    const end = parseInt(s.dataset.end);
+    return charIndex >= start && charIndex < end;
+  });
+  if (word) {
+    word.classList.add('active');
+    const rect = word.getBoundingClientRect();
+    const readerRect = reader.getBoundingClientRect();
+    if (rect.bottom > readerRect.bottom || rect.top < readerRect.top) {
+      word.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+}
+function clearHighlight() { wordSpans.forEach(s => s.classList.remove('active')); }
+
+rateSlider.addEventListener('input', () => { rateValue.textContent = parseFloat(rateSlider.value).toFixed(1); });
+pitchSlider.addEventListener('input', () => { pitchValue.textContent = parseFloat(pitchSlider.value).toFixed(1); });
+fontSizeSlider.addEventListener('input', () => {
+  document.documentElement.style.setProperty('--font-size', fontSizeSlider.value + 'px');
+  fontSizeValue.textContent = fontSizeSlider.value;
+});
+lineHeightSlider.addEventListener('input', () => {
+  document.documentElement.style.setProperty('--line-height', lineHeightSlider.value);
+  lineHeightValue.textContent = parseFloat(lineHeightSlider.value).toFixed(1);
+});
+themeSelect.addEventListener('change', () => {
+  if (themeSelect.value === 'light') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', themeSelect.value);
+});
+dyslexicFontToggle.addEventListener('change', () => {
+  document.body.classList.toggle('dyslexic-font', dyslexicFontToggle.checked);
+});
+
+document.addEventListener('keydown', (e) => {
+  const tag = document.activeElement.tagName;
+  if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (TTS && TTS.speaking && !isPaused) pauseBtn.click();
+    else playBtn.click();
+  } else if (e.code === 'Escape') {
+    stopBtn.click();
+  }
+});
+
+if (!TTS) {
+  setStatus('Uppläsning stöds inte i denna miljö. OCR fungerar, men för att lyssna på texten behöver du ladda ner HTML-filen och öppna den i Chrome eller Edge.', 'error');
+}
+
+log('App initialiserad. Tesseract.js laddad: ' + (typeof Tesseract !== 'undefined' ? 'ja' : 'NEJ') + '. TTS: ' + (TTS ? 'ja' : 'nej'));
+
+// ---- PWA ----
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => log('Service worker registrerad: ' + reg.scope))
+      .catch(err => log('Service worker-registrering misslyckades: ' + err));
+  });
+}
+
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById('installBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  installBtn.classList.remove('hidden');
+  log('App kan installeras (beforeinstallprompt).');
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const result = await deferredInstallPrompt.userChoice;
+  log('Install-prompt resultat: ' + result.outcome);
+  deferredInstallPrompt = null;
+  installBtn.classList.add('hidden');
+});
+
+window.addEventListener('appinstalled', () => {
+  log('App installerad.');
+  installBtn.classList.add('hidden');
+});
+</script>
+</body>
+</html>
