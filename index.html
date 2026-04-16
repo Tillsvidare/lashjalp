@@ -505,7 +505,7 @@ readerEl.addEventListener('click', (e) => {
   startPlayback(idx);
 });
 
-// --- TTS word-by-word ---
+// --- TTS: full-text with timer-based highlight fallback ---
 const TTS = (typeof window !== 'undefined' && window.speechSynthesis) ? window.speechSynthesis : null;
 
 function populateVoices() {
@@ -541,44 +541,106 @@ function getVoice() {
   return TTS ? TTS.getVoices().find(v => v.name === voiceSelect.value) || null : null;
 }
 
-function startPlayback(fromIndex) {
-  if (!TTS || wordSpans.length === 0) return;
-  ttsState = { speaking: true, paused: false, stopRequested: false, wordIndex: fromIndex || 0 };
-  playBtn.disabled = true;
-  pauseBtn.disabled = false;
-  stopBtn.disabled = false;
-  playBtn.textContent = '\u25b6 Spela';
-  speakNextWord();
+// Build full text from wordSpans starting at fromIndex
+function getTextFromIndex(fromIndex) {
+  const words = [];
+  for (let i = fromIndex; i < wordSpans.length; i++) {
+    words.push(wordSpans[i].dataset.text || wordSpans[i].textContent);
+  }
+  return words.join(' ');
 }
 
-function speakNextWord() {
-  if (ttsState.stopRequested || ttsState.wordIndex >= wordSpans.length) { finishPlayback(); return; }
-  if (ttsState.paused) return;
+let highlightTimer = null;
+let boundaryFired = false;
 
-  const span = wordSpans[ttsState.wordIndex];
+function startTimerHighlight(fromIndex, rate) {
+  // ~160 words/min at rate 1.0 → ~375ms per word, adjusted by rate
+  const msPerWord = 375 / rate;
+  let idx = fromIndex;
+
+  function tick() {
+    if (ttsState.stopRequested || ttsState.paused) return;
+    if (idx >= wordSpans.length) return;
+    highlightWord(idx);
+    ttsState.wordIndex = idx;
+    idx++;
+    highlightTimer = setTimeout(tick, msPerWord);
+  }
+  tick();
+}
+
+function highlightWord(idx) {
   clearHighlight();
+  if (idx < 0 || idx >= wordSpans.length) return;
+  const span = wordSpans[idx];
   span.classList.add('active');
-
   const rect = span.getBoundingClientRect();
   const rRect = readerEl.getBoundingClientRect();
   if (rect.bottom > rRect.bottom || rect.top < rRect.top) {
     span.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+}
 
-  const utter = new SpeechSynthesisUtterance(span.dataset.text || span.textContent);
+function startPlayback(fromIndex) {
+  if (!TTS || wordSpans.length === 0) return;
+  const startIdx = fromIndex || 0;
+  ttsState = { speaking: true, paused: false, stopRequested: false, wordIndex: startIdx };
+  boundaryFired = false;
+  playBtn.disabled = true;
+  pauseBtn.disabled = false;
+  stopBtn.disabled = false;
+  playBtn.textContent = '\u25b6 Spela';
+
+  const text = getTextFromIndex(startIdx);
+  const utter = new SpeechSynthesisUtterance(text);
   const voice = getVoice();
   if (voice) utter.voice = voice;
-  utter.rate = parseFloat(rateSlider.value);
+  const rate = parseFloat(rateSlider.value);
+  utter.rate = rate;
   utter.pitch = 1.0;
-  utter.onend = () => { ttsState.wordIndex++; speakNextWord(); };
-  utter.onerror = (e) => {
-    if (e.error === 'canceled' || e.error === 'interrupted') return;
-    ttsState.wordIndex++; speakNextWord();
+
+  // Track word boundaries via charIndex
+  const wordOffsets = [];
+  let offset = 0;
+  for (let i = startIdx; i < wordSpans.length; i++) {
+    const w = wordSpans[i].dataset.text || wordSpans[i].textContent;
+    wordOffsets.push({ spanIdx: i, start: offset, end: offset + w.length });
+    offset += w.length + 1; // +1 for space
+  }
+
+  utter.onboundary = (e) => {
+    if (e.name !== 'word') return;
+    boundaryFired = true;
+    // Cancel timer fallback if boundary events are working
+    if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null; }
+    const match = wordOffsets.find(wo => e.charIndex >= wo.start && e.charIndex < wo.end);
+    if (match) {
+      highlightWord(match.spanIdx);
+      ttsState.wordIndex = match.spanIdx;
+    }
   };
+
+  utter.onend = () => finishPlayback();
+  utter.onerror = (e) => {
+    if (e.error !== 'canceled' && e.error !== 'interrupted') {
+      setStatus(`Fel vid uppläsning: ${e.error}`, 'error');
+    }
+    finishPlayback();
+  };
+
   TTS.speak(utter);
+
+  // Start timer-based fallback after a short delay; cancel if onboundary fires
+  highlightWord(startIdx);
+  setTimeout(() => {
+    if (!boundaryFired && ttsState.speaking && !ttsState.stopRequested) {
+      startTimerHighlight(startIdx + 1, rate);
+    }
+  }, 400);
 }
 
 function finishPlayback() {
+  if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null; }
   clearHighlight();
   ttsState = { speaking: false, paused: false, stopRequested: false, wordIndex: 0 };
   playBtn.disabled = false; pauseBtn.disabled = true; stopBtn.disabled = true;
@@ -588,6 +650,7 @@ function finishPlayback() {
 function stopPlayback() {
   if (!TTS) return;
   ttsState.stopRequested = true; ttsState.paused = false;
+  if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null; }
   TTS.cancel(); finishPlayback();
 }
 
@@ -596,14 +659,17 @@ playBtn.addEventListener('click', () => {
   if (ttsState.paused) {
     ttsState.paused = false;
     playBtn.disabled = true; playBtn.textContent = '\u25b6 Spela'; pauseBtn.disabled = false;
-    speakNextWord(); return;
+    startPlayback(ttsState.wordIndex);
+    return;
   }
   startPlayback(0);
 });
 
 pauseBtn.addEventListener('click', () => {
   if (!TTS) return;
-  ttsState.paused = true; TTS.cancel();
+  ttsState.paused = true;
+  if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null; }
+  TTS.cancel();
   playBtn.disabled = false; playBtn.textContent = '\u25b6 Fortsätt'; pauseBtn.disabled = true;
 });
 
