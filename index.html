@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>OCR Läshjälp</title>
-<meta name="description" content="Tolkar text från bilder och läser upp högt. Hjälp för elever med lässvårigheter.">
+<meta name="description" content="Tolkar text från bilder och PDF:er och läser upp högt. Hjälp för elever med lässvårigheter.">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#fdf6e3">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,6 +13,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.js"></script>
 <style>
 :root {
   --bg: #fdf6e3;
@@ -33,33 +34,34 @@
 * { box-sizing: border-box; }
 body { font-family: var(--font-family); font-size: 16px; background: var(--bg); color: var(--ink); margin: 0; padding: 20px; min-height: 100vh; }
 .container { max-width: 960px; margin: 0 auto; }
-header { margin-bottom: 24px; }
-h1 { font-size: 28px; margin: 0 0 4px; }
-.subtitle { color: var(--muted); margin: 0; font-size: 14px; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-.card h2 { margin: 0 0 12px; font-size: 18px; }
-.dropzone { border: 2px dashed var(--border); border-radius: 12px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface); display: block; }
-.dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: rgba(37, 99, 235, 0.05); }
-.dropzone p { margin: 6px 0; color: var(--muted); }
-.dropzone .primary-text { font-size: 18px; color: var(--ink); font-weight: 500; }
+h1 { font-size: 26px; margin: 0 0 4px; }
+.subtitle { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.input-row { display: flex; gap: 10px; margin-bottom: 12px; }
+.input-row button { flex: 1; padding: 14px 8px; font-size: 15px; }
 input[type="file"] { display: none; }
 button { background: var(--accent); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.2s; font-family: inherit; }
 button:hover:not(:disabled) { background: var(--accent-hover); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--border); }
 button.secondary:hover:not(:disabled) { background: rgba(0,0,0,0.05); }
+button.small { padding: 6px 12px; font-size: 13px; }
 .progress { background: var(--border); border-radius: 8px; height: 8px; overflow: hidden; margin: 12px 0; }
 .progress-bar { background: var(--accent); height: 100%; transition: width 0.3s; width: 0%; }
 .reader { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; min-height: 80px; user-select: text; max-height: 50vh; overflow-y: auto; white-space: normal; }
-.reader .word { display: inline; padding: 2px 0; border-radius: 3px; transition: background 0.15s; }
+.reader .word { display: inline; padding: 2px 1px; border-radius: 3px; transition: background 0.1s; cursor: pointer; }
 .reader .word.active { background: #ffd700; color: #000; font-weight: 600; box-shadow: 0 0 0 2px #ffd700; }
+.bionic .word b { font-weight: 700; }
+.bionic .word { font-weight: 300; }
+.bionic .word.active { font-weight: 600; }
+.bionic .word.active b { font-weight: 800; }
 #textOutput { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); width: 100%; min-height: 200px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); resize: vertical; }
-.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
-.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 12px; }
 .setting { display: flex; flex-direction: column; gap: 4px; }
-.setting label { font-size: 14px; color: var(--muted); }
-.setting select, .setting input[type="range"] { padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); font-family: inherit; font-size: 14px; }
-.setting label:has(input[type="checkbox"]) { color: var(--ink); font-size: 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.setting label { font-size: 13px; color: var(--muted); }
+.setting select, .setting input[type="range"] { padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); font-family: inherit; font-size: 13px; }
+.setting label:has(input[type="checkbox"]) { color: var(--ink); font-size: 15px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .status { padding: 8px 12px; border-radius: 6px; font-size: 14px; margin: 8px 0; }
 .status.info { background: rgba(37,99,235,0.1); color: var(--accent); }
 .status.error { background: rgba(220,38,38,0.1); color: var(--danger); }
@@ -68,32 +70,26 @@ button.secondary:hover:not(:disabled) { background: rgba(0,0,0,0.05); }
 @font-face {
   font-family: 'OpenDyslexic';
   src: url('https://cdn.jsdelivr.net/gh/antijingoist/open-dyslexic@master/compiled/OpenDyslexic-Regular.woff2') format('woff2');
-  font-weight: normal;
-  font-display: swap;
+  font-weight: normal; font-display: swap;
 }
 .dyslexic-font { --font-family: 'OpenDyslexic', sans-serif; }
-kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: monospace; }
-.hint { color: var(--muted); font-size: 13px; margin-top: 8px; }
+kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace; }
+.hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+.page-nav { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 14px; }
 </style>
 </head>
 <body>
 <div class="container">
-  <header>
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-      <div>
-        <h1>OCR Läshjälp</h1>
-        <p class="subtitle">Ladda upp en bild — texten tolkas och läses upp högt.</p>
-      </div>
-      <button id="installBtn" class="secondary hidden" style="white-space:nowrap;">Installera app</button>
-    </div>
-  </header>
+  <h1>OCR Läshjälp</h1>
+  <p class="subtitle">Fotografera, ladda upp en bild eller PDF — texten tolkas och läses upp högt.</p>
 
   <div class="card">
-    <label for="fileInput" class="dropzone" id="dropzone">
-      <p class="primary-text">Dra hit en bild eller klicka för att välja</p>
-      <p>JPG, PNG, WEBP, BMP</p>
-    </label>
-    <input type="file" id="fileInput" accept="image/*">
+    <div class="input-row">
+      <button id="cameraBtn">Ta foto</button>
+      <button id="fileBtn" class="secondary">Välj fil</button>
+    </div>
+    <input type="file" id="fileInput" accept="image/*,application/pdf">
+    <input type="file" id="cameraInput" accept="image/*" capture="environment">
     <canvas id="previewCanvas" class="hidden"></canvas>
     <img id="preview" class="hidden" alt="">
 
@@ -110,10 +106,7 @@ kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size
         </select>
       </div>
       <div class="setting">
-        <label>
-          <input type="checkbox" id="preprocessToggle" checked>
-          Förbehandla bild
-        </label>
+        <label><input type="checkbox" id="preprocessToggle" checked> Förbehandla bild</label>
       </div>
     </div>
 
@@ -125,6 +118,11 @@ kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size
       <div class="progress-bar" id="progressBar"></div>
     </div>
     <div id="status"></div>
+    <div class="page-nav hidden" id="pageNav">
+      <button id="prevPageBtn" class="secondary small" disabled>&lt; Förra</button>
+      <span id="pageInfo"></span>
+      <button id="nextPageBtn" class="secondary small" disabled>Nästa &gt;</button>
+    </div>
   </div>
 
   <div class="card hidden" id="resultCard">
@@ -173,41 +171,53 @@ kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size
         </select>
       </div>
       <div class="setting">
-        <label>
-          <input type="checkbox" id="dyslexicFontToggle">
-          OpenDyslexic
-        </label>
+        <label><input type="checkbox" id="dyslexicFontToggle"> OpenDyslexic</label>
+      </div>
+      <div class="setting">
+        <label><input type="checkbox" id="bionicToggle"> Bionic Reading</label>
       </div>
     </div>
     <p class="hint"><kbd>Mellanslag</kbd> spela/paus &nbsp; <kbd>Esc</kbd> stopp</p>
   </div>
+
+  <button id="installBtn" class="secondary hidden" style="width:100%;">Installera app</button>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const fileInput = $('fileInput'), dropzone = $('dropzone'), preview = $('preview');
-const previewCanvas = $('previewCanvas');
+
+// --- Elements ---
+const fileInput = $('fileInput'), cameraInput = $('cameraInput');
+const cameraBtn = $('cameraBtn'), fileBtn = $('fileBtn');
+const preview = $('preview'), previewCanvas = $('previewCanvas');
 const ocrBtn = $('ocrBtn'), clearBtn = $('clearBtn');
 const langSelect = $('langSelect'), preprocessToggle = $('preprocessToggle');
-const progressWrap = $('progressWrap'), progressBar = $('progressBar'), status = $('status');
+const progressWrap = $('progressWrap'), progressBar = $('progressBar'), statusEl = $('status');
 const resultCard = $('resultCard'), textOutput = $('textOutput');
 const readerView = $('readerView'), editView = $('editView');
 const editToggleBtn = $('editToggleBtn'), copyBtn = $('copyBtn');
-const reader = $('reader');
+const readerEl = $('reader');
 const playBtn = $('playBtn'), pauseBtn = $('pauseBtn'), stopBtn = $('stopBtn');
 const voiceSelect = $('voiceSelect');
-const rateSlider = $('rateSlider'), rateValue = $('rateValue');
+const rateSlider = $('rateSlider'), rateValueEl = $('rateValue');
 const fontSizeSlider = $('fontSizeSlider'), fontSizeValue = $('fontSizeValue');
 const lineHeightSlider = $('lineHeightSlider'), lineHeightValue = $('lineHeightValue');
 const themeSelect = $('themeSelect'), dyslexicFontToggle = $('dyslexicFontToggle');
+const bionicToggle = $('bionicToggle');
+const pageNav = $('pageNav'), pageInfo = $('pageInfo');
+const prevPageBtn = $('prevPageBtn'), nextPageBtn = $('nextPageBtn');
 
-let currentImage = null;
 let wordSpans = [];
-let isPaused = false;
+let ttsState = { speaking: false, paused: false, stopRequested: false, wordIndex: 0 };
 let isEditing = false;
 
+// PDF state
+let pdfDoc = null;
+let pdfCurrentPage = 1;
+let pdfTotalPages = 0;
+
 function setStatus(msg, type = 'info') {
-  status.innerHTML = msg ? `<div class="status ${type}">${msg}</div>` : '';
+  statusEl.innerHTML = msg ? `<div class="status ${type}">${msg}</div>` : '';
 }
 
 function normalizeText(text) {
@@ -218,39 +228,108 @@ function normalizeText(text) {
     .replace(/ {2,}/g, ' ');
 }
 
-['dragenter', 'dragover'].forEach(ev => {
-  dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dragover'); });
-});
-['dragleave', 'drop'].forEach(ev => {
-  dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); });
-});
-dropzone.addEventListener('drop', e => {
-  const file = e.dataTransfer.files[0];
-  if (file) handleFile(file);
-});
-fileInput.addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (file) handleFile(file);
-});
+// --- Input ---
+cameraBtn.addEventListener('click', () => cameraInput.click());
+fileBtn.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+cameraInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
 
 function handleFile(file) {
-  if (!file.type.startsWith('image/')) {
-    setStatus('Filen är inte en bild.', 'error');
+  if (file.type === 'application/pdf') {
+    handlePDF(file);
     return;
   }
-  currentImage = file;
+  if (!file.type.startsWith('image/')) {
+    setStatus('Filen måste vara en bild eller PDF.', 'error');
+    return;
+  }
+  pdfDoc = null;
+  pageNav.classList.add('hidden');
   const fr = new FileReader();
   fr.onload = e => {
     preview.src = e.target.result;
-    preview.onload = () => renderPreprocessed();
+    preview.onload = () => {
+      renderPreprocessed();
+      ocrBtn.disabled = false;
+      clearBtn.disabled = false;
+      setStatus('Bild laddad.', 'success');
+    };
   };
   fr.readAsDataURL(file);
-  ocrBtn.disabled = false;
-  clearBtn.disabled = false;
-  setStatus(`Bild laddad: ${file.name}`, 'success');
 }
 
-preprocessToggle.addEventListener('change', renderPreprocessed);
+async function handlePDF(file) {
+  setStatus('Laddar PDF...', 'info');
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.js';
+    pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    pdfTotalPages = pdfDoc.numPages;
+    pdfCurrentPage = 1;
+    pageNav.classList.remove('hidden');
+    updatePageNav();
+    await renderPDFPage(pdfCurrentPage);
+    ocrBtn.disabled = false;
+    clearBtn.disabled = false;
+    setStatus(`PDF laddad: ${pdfTotalPages} sidor.`, 'success');
+  } catch (err) {
+    setStatus(`Kunde inte ladda PDF: ${err.message}`, 'error');
+    console.error('[PDF]', err);
+  }
+}
+
+async function renderPDFPage(pageNum) {
+  const page = await pdfDoc.getPage(pageNum);
+  const scale = 2.0;
+  const viewport = page.getViewport({ scale });
+  previewCanvas.width = viewport.width;
+  previewCanvas.height = viewport.height;
+  const ctx = previewCanvas.getContext('2d');
+  await page.render({ canvasContext: ctx, viewport }).promise;
+
+  // Also try to extract text directly from PDF
+  const textContent = await page.getTextContent();
+  const pdfText = textContent.items.map(i => i.str).join(' ').trim();
+  if (pdfText.length > 50) {
+    // PDF has embedded text — use it directly, skip OCR
+    textOutput.value = pdfText;
+    loadIntoReader();
+    resultCard.classList.remove('hidden');
+    setStatus('Text extraherad direkt från PDF.', 'success');
+    resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  // No embedded text — need OCR, apply preprocessing
+  if (preprocessToggle.checked) applyPreprocessing();
+}
+
+function updatePageNav() {
+  pageInfo.textContent = `Sida ${pdfCurrentPage} av ${pdfTotalPages}`;
+  prevPageBtn.disabled = pdfCurrentPage <= 1;
+  nextPageBtn.disabled = pdfCurrentPage >= pdfTotalPages;
+}
+
+prevPageBtn.addEventListener('click', async () => {
+  if (pdfCurrentPage > 1) {
+    pdfCurrentPage--;
+    updatePageNav();
+    await renderPDFPage(pdfCurrentPage);
+  }
+});
+
+nextPageBtn.addEventListener('click', async () => {
+  if (pdfCurrentPage < pdfTotalPages) {
+    pdfCurrentPage++;
+    updatePageNav();
+    await renderPDFPage(pdfCurrentPage);
+  }
+});
+
+preprocessToggle.addEventListener('change', () => {
+  if (pdfDoc) return; // PDF handles its own canvas
+  renderPreprocessed();
+});
 
 function renderPreprocessed() {
   if (!preview.src || !preview.complete || !preview.naturalWidth) return;
@@ -264,38 +343,45 @@ function renderPreprocessed() {
   const ctx = previewCanvas.getContext('2d');
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(preview, 0, 0, sw, sh);
+  if (preprocessToggle.checked) applyPreprocessing();
+}
 
-  if (preprocessToggle.checked) {
-    const imgData = ctx.getImageData(0, 0, sw, sh);
-    const d = imgData.data;
-    let min = 255, max = 0;
-    for (let i = 0; i < d.length; i += 4) {
-      const g = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
-      d[i] = d[i+1] = d[i+2] = g;
-      if (g < min) min = g;
-      if (g > max) max = g;
-    }
-    const range = Math.max(max - min, 1);
-    for (let i = 0; i < d.length; i += 4) {
-      const v = Math.round(((d[i] - min) / range) * 255);
-      d[i] = d[i+1] = d[i+2] = v;
-    }
-    ctx.putImageData(imgData, 0, 0);
+function applyPreprocessing() {
+  const ctx = previewCanvas.getContext('2d');
+  const sw = previewCanvas.width, sh = previewCanvas.height;
+  const imgData = ctx.getImageData(0, 0, sw, sh);
+  const d = imgData.data;
+  let min = 255, max = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const g = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+    d[i] = d[i+1] = d[i+2] = g;
+    if (g < min) min = g;
+    if (g > max) max = g;
   }
+  const range = Math.max(max - min, 1);
+  for (let i = 0; i < d.length; i += 4) {
+    const v = Math.round(((d[i] - min) / range) * 255);
+    d[i] = d[i+1] = d[i+2] = v;
+  }
+  ctx.putImageData(imgData, 0, 0);
 }
 
 clearBtn.addEventListener('click', () => {
-  currentImage = null;
+  pdfDoc = null;
   preview.src = '';
   ocrBtn.disabled = true;
   clearBtn.disabled = true;
   fileInput.value = '';
+  cameraInput.value = '';
   resultCard.classList.add('hidden');
+  pageNav.classList.add('hidden');
+  stopPlayback();
   setStatus('');
 });
 
+// --- OCR ---
 ocrBtn.addEventListener('click', async () => {
-  if (!currentImage) return;
+  if (previewCanvas.width === 0) return;
   ocrBtn.disabled = true;
   clearBtn.disabled = true;
   progressWrap.classList.remove('hidden');
@@ -319,16 +405,11 @@ ocrBtn.addEventListener('click', async () => {
       },
       errorHandler: err => console.error('[OCR]', err)
     });
-
-    await worker.setParameters({
-      tessedit_pageseg_mode: '6',
-      preserve_interword_spaces: '1'
-    });
-
+    await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
     const { data } = await worker.recognize(previewCanvas);
     const cleanText = data.text.trim();
     if (!cleanText) {
-      setStatus('Ingen text hittades. Prova att slå av/på förbehandling eller kontrollera bilden.', 'error');
+      setStatus('Ingen text hittades. Kontrollera bilden eller prova att slå av förbehandling.', 'error');
     } else {
       textOutput.value = cleanText;
       loadIntoReader();
@@ -338,17 +419,15 @@ ocrBtn.addEventListener('click', async () => {
     }
   } catch (err) {
     setStatus(`Fel: ${err.message || err}`, 'error');
-    console.error('[OCR]', err);
   } finally {
-    if (worker) {
-      try { await worker.terminate(); } catch (e) {}
-    }
+    if (worker) { try { await worker.terminate(); } catch (e) {} }
     progressWrap.classList.add('hidden');
     ocrBtn.disabled = false;
     clearBtn.disabled = false;
   }
 });
 
+// --- Edit toggle ---
 editToggleBtn.addEventListener('click', () => {
   isEditing = !isEditing;
   if (isEditing) {
@@ -369,68 +448,84 @@ copyBtn.addEventListener('click', async () => {
     const orig = copyBtn.textContent;
     copyBtn.textContent = 'Kopierat!';
     setTimeout(() => copyBtn.textContent = orig, 1500);
-  } catch (err) {
-    setStatus('Kunde inte kopiera.', 'error');
-  }
+  } catch (err) { setStatus('Kunde inte kopiera.', 'error'); }
 });
+
+// --- Reader with bionic reading support ---
+function bionicHTML(word) {
+  const len = word.length;
+  if (len <= 1) return `<b>${word}</b>`;
+  const boldLen = Math.ceil(len / 2);
+  return `<b>${word.slice(0, boldLen)}</b>${word.slice(boldLen)}`;
+}
 
 function loadIntoReader() {
   const text = textOutput.value;
   if (!text.trim()) return;
-  reader.innerHTML = '';
+  readerEl.innerHTML = '';
   wordSpans = [];
+  const bionic = bionicToggle.checked;
   const normalized = normalizeText(text);
   const paragraphs = normalized.split(/\n\n+/);
-  let charIndex = 0;
   paragraphs.forEach((para, pi) => {
-    const tokens = para.trim().match(/\S+|\s+/g) || [];
-    tokens.forEach(token => {
-      if (/\S/.test(token)) {
-        const span = document.createElement('span');
-        span.className = 'word';
-        span.textContent = token;
-        span.dataset.start = charIndex;
-        span.dataset.end = charIndex + token.length;
-        reader.appendChild(span);
-        wordSpans.push(span);
+    const words = para.trim().split(/\s+/).filter(Boolean);
+    words.forEach((word, wi) => {
+      const span = document.createElement('span');
+      span.className = 'word';
+      span.dataset.index = wordSpans.length;
+      span.dataset.text = word;
+      if (bionic) {
+        span.innerHTML = bionicHTML(word);
       } else {
-        reader.appendChild(document.createTextNode(' '));
+        span.textContent = word;
       }
-      charIndex += token.length;
+      readerEl.appendChild(span);
+      wordSpans.push(span);
+      if (wi < words.length - 1) readerEl.appendChild(document.createTextNode(' '));
     });
     if (pi < paragraphs.length - 1) {
-      charIndex += 2;
-      reader.appendChild(document.createElement('br'));
-      reader.appendChild(document.createElement('br'));
+      readerEl.appendChild(document.createElement('br'));
+      readerEl.appendChild(document.createElement('br'));
     }
   });
 }
 
+bionicToggle.addEventListener('change', () => {
+  readerEl.classList.toggle('bionic', bionicToggle.checked);
+  if (wordSpans.length > 0) loadIntoReader();
+});
+
+// Click word to start reading from there
+readerEl.addEventListener('click', (e) => {
+  const span = e.target.closest('.word');
+  if (!span) return;
+  const idx = parseInt(span.dataset.index);
+  if (isNaN(idx)) return;
+  stopPlayback();
+  startPlayback(idx);
+});
+
+// --- TTS word-by-word ---
 const TTS = (typeof window !== 'undefined' && window.speechSynthesis) ? window.speechSynthesis : null;
 
 function populateVoices() {
   if (!TTS) return;
   const voices = TTS.getVoices();
-  const currentSelected = voiceSelect.value;
+  const cur = voiceSelect.value;
   voiceSelect.innerHTML = '';
   const sorted = [...voices].sort((a, b) => {
     const aSv = a.lang.startsWith('sv') ? 0 : 1;
     const bSv = b.lang.startsWith('sv') ? 0 : 1;
-    if (aSv !== bSv) return aSv - bSv;
-    return a.lang.localeCompare(b.lang);
+    return aSv !== bSv ? aSv - bSv : a.lang.localeCompare(b.lang);
   });
-  sorted.forEach(voice => {
-    const opt = document.createElement('option');
-    opt.value = voice.name;
-    opt.textContent = `${voice.name} (${voice.lang})`;
-    voiceSelect.appendChild(opt);
+  sorted.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v.name;
+    o.textContent = `${v.name} (${v.lang})`;
+    voiceSelect.appendChild(o);
   });
-  if (currentSelected && sorted.find(v => v.name === currentSelected)) {
-    voiceSelect.value = currentSelected;
-  } else {
-    const svVoice = sorted.find(v => v.lang.startsWith('sv'));
-    if (svVoice) voiceSelect.value = svVoice.name;
-  }
+  if (cur && sorted.find(v => v.name === cur)) voiceSelect.value = cur;
+  else { const sv = sorted.find(v => v.lang.startsWith('sv')); if (sv) voiceSelect.value = sv.name; }
 }
 
 if (TTS) {
@@ -438,98 +533,85 @@ if (TTS) {
   if (TTS.onvoiceschanged !== undefined) TTS.onvoiceschanged = populateVoices;
 } else {
   playBtn.disabled = true;
-  const opt = document.createElement('option');
-  opt.textContent = 'Ingen röst tillgänglig';
-  voiceSelect.appendChild(opt);
-  voiceSelect.disabled = true;
+  const o = document.createElement('option'); o.textContent = 'Ingen röst tillgänglig';
+  voiceSelect.appendChild(o); voiceSelect.disabled = true;
 }
 
-playBtn.addEventListener('click', () => {
-  if (!TTS) { setStatus('Uppläsning stöds inte i denna webbläsare.', 'error'); return; }
-  if (isPaused) {
-    TTS.resume();
-    isPaused = false;
-    playBtn.disabled = true;
-    playBtn.textContent = '\u25b6 Spela';
-    pauseBtn.disabled = false;
-    return;
-  }
-  const rawText = textOutput.value.trim();
-  if (!rawText) return;
-  TTS.cancel();
-  clearHighlight();
-  const ttsText = normalizeText(rawText);
-  const utter = new SpeechSynthesisUtterance(ttsText);
-  const selectedVoice = TTS.getVoices().find(v => v.name === voiceSelect.value);
-  if (selectedVoice) utter.voice = selectedVoice;
-  utter.rate = parseFloat(rateSlider.value);
-  utter.pitch = 1.0;
-  utter.onboundary = (e) => {
-    if (e.name === 'word' || e.charIndex !== undefined) highlightAt(e.charIndex);
-  };
-  utter.onend = () => {
-    clearHighlight();
-    playBtn.disabled = false;
-    pauseBtn.disabled = true;
-    stopBtn.disabled = true;
-    playBtn.textContent = '\u25b6 Spela';
-    isPaused = false;
-  };
-  utter.onerror = (e) => {
-    if (e.error !== 'canceled' && e.error !== 'interrupted') {
-      setStatus(`Fel vid uppläsning: ${e.error}`, 'error');
-    }
-    clearHighlight();
-    playBtn.disabled = false;
-    pauseBtn.disabled = true;
-    stopBtn.disabled = true;
-    playBtn.textContent = '\u25b6 Spela';
-  };
-  TTS.speak(utter);
+function getVoice() {
+  return TTS ? TTS.getVoices().find(v => v.name === voiceSelect.value) || null : null;
+}
+
+function startPlayback(fromIndex) {
+  if (!TTS || wordSpans.length === 0) return;
+  ttsState = { speaking: true, paused: false, stopRequested: false, wordIndex: fromIndex || 0 };
   playBtn.disabled = true;
   pauseBtn.disabled = false;
   stopBtn.disabled = false;
+  playBtn.textContent = '\u25b6 Spela';
+  speakNextWord();
+}
+
+function speakNextWord() {
+  if (ttsState.stopRequested || ttsState.wordIndex >= wordSpans.length) { finishPlayback(); return; }
+  if (ttsState.paused) return;
+
+  const span = wordSpans[ttsState.wordIndex];
+  clearHighlight();
+  span.classList.add('active');
+
+  const rect = span.getBoundingClientRect();
+  const rRect = readerEl.getBoundingClientRect();
+  if (rect.bottom > rRect.bottom || rect.top < rRect.top) {
+    span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  const utter = new SpeechSynthesisUtterance(span.dataset.text || span.textContent);
+  const voice = getVoice();
+  if (voice) utter.voice = voice;
+  utter.rate = parseFloat(rateSlider.value);
+  utter.pitch = 1.0;
+  utter.onend = () => { ttsState.wordIndex++; speakNextWord(); };
+  utter.onerror = (e) => {
+    if (e.error === 'canceled' || e.error === 'interrupted') return;
+    ttsState.wordIndex++; speakNextWord();
+  };
+  TTS.speak(utter);
+}
+
+function finishPlayback() {
+  clearHighlight();
+  ttsState = { speaking: false, paused: false, stopRequested: false, wordIndex: 0 };
+  playBtn.disabled = false; pauseBtn.disabled = true; stopBtn.disabled = true;
+  playBtn.textContent = '\u25b6 Spela';
+}
+
+function stopPlayback() {
+  if (!TTS) return;
+  ttsState.stopRequested = true; ttsState.paused = false;
+  TTS.cancel(); finishPlayback();
+}
+
+playBtn.addEventListener('click', () => {
+  if (!TTS) { setStatus('Uppläsning stöds inte.', 'error'); return; }
+  if (ttsState.paused) {
+    ttsState.paused = false;
+    playBtn.disabled = true; playBtn.textContent = '\u25b6 Spela'; pauseBtn.disabled = false;
+    speakNextWord(); return;
+  }
+  startPlayback(0);
 });
 
 pauseBtn.addEventListener('click', () => {
   if (!TTS) return;
-  TTS.pause();
-  isPaused = true;
-  playBtn.disabled = false;
-  playBtn.textContent = '\u25b6 Fortsätt';
-  pauseBtn.disabled = true;
+  ttsState.paused = true; TTS.cancel();
+  playBtn.disabled = false; playBtn.textContent = '\u25b6 Fortsätt'; pauseBtn.disabled = true;
 });
 
-stopBtn.addEventListener('click', () => {
-  if (!TTS) return;
-  TTS.cancel();
-  clearHighlight();
-  playBtn.disabled = false;
-  pauseBtn.disabled = true;
-  stopBtn.disabled = true;
-  playBtn.textContent = '\u25b6 Spela';
-  isPaused = false;
-});
-
-function highlightAt(charIndex) {
-  clearHighlight();
-  const word = wordSpans.find(s => {
-    const start = parseInt(s.dataset.start);
-    const end = parseInt(s.dataset.end);
-    return charIndex >= start && charIndex < end;
-  });
-  if (word) {
-    word.classList.add('active');
-    const rect = word.getBoundingClientRect();
-    const readerRect = reader.getBoundingClientRect();
-    if (rect.bottom > readerRect.bottom || rect.top < readerRect.top) {
-      word.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }
-}
+stopBtn.addEventListener('click', stopPlayback);
 function clearHighlight() { wordSpans.forEach(s => s.classList.remove('active')); }
 
-rateSlider.addEventListener('input', () => { rateValue.textContent = parseFloat(rateSlider.value).toFixed(1); });
+// --- Settings ---
+rateSlider.addEventListener('input', () => { rateValueEl.textContent = parseFloat(rateSlider.value).toFixed(1); });
 fontSizeSlider.addEventListener('input', () => {
   document.documentElement.style.setProperty('--font-size', fontSizeSlider.value + 'px');
   fontSizeValue.textContent = fontSizeSlider.value;
@@ -548,43 +630,29 @@ dyslexicFontToggle.addEventListener('change', () => {
 
 document.addEventListener('keydown', (e) => {
   const tag = document.activeElement.tagName;
-  if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+  if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return;
   if (e.code === 'Space') {
     e.preventDefault();
-    if (TTS && TTS.speaking && !isPaused) pauseBtn.click();
+    if (ttsState.speaking && !ttsState.paused) pauseBtn.click();
     else playBtn.click();
-  } else if (e.code === 'Escape') {
-    stopBtn.click();
-  }
+  } else if (e.code === 'Escape') stopBtn.click();
 });
 
-// ---- PWA ----
+// --- PWA ---
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
 }
-
 let deferredInstallPrompt = null;
-const installBtn = document.getElementById('installBtn');
-
+const installBtn = $('installBtn');
 window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  installBtn.classList.remove('hidden');
+  e.preventDefault(); deferredInstallPrompt = e; installBtn.classList.remove('hidden');
 });
-
 installBtn.addEventListener('click', async () => {
   if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-  installBtn.classList.add('hidden');
+  deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null; installBtn.classList.add('hidden');
 });
-
-window.addEventListener('appinstalled', () => {
-  installBtn.classList.add('hidden');
-});
+window.addEventListener('appinstalled', () => { installBtn.classList.add('hidden'); });
 </script>
 </body>
 </html>
