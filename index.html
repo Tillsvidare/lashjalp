@@ -34,29 +34,29 @@
 body { font-family: var(--font-family); font-size: 16px; background: var(--bg); color: var(--ink); margin: 0; padding: 20px; min-height: 100vh; }
 .container { max-width: 960px; margin: 0 auto; }
 header { margin-bottom: 24px; }
-h1 { font-size: 28px; margin: 0 0 8px; }
-.subtitle { color: var(--muted); margin: 0; }
+h1 { font-size: 28px; margin: 0 0 4px; }
+.subtitle { color: var(--muted); margin: 0; font-size: 14px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-.card h2 { margin: 0 0 16px; font-size: 18px; }
-.dropzone { border: 2px dashed var(--border); border-radius: 12px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface); display: block; }
+.card h2 { margin: 0 0 12px; font-size: 18px; }
+.dropzone { border: 2px dashed var(--border); border-radius: 12px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface); display: block; }
 .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: rgba(37, 99, 235, 0.05); }
-.dropzone p { margin: 8px 0; color: var(--muted); }
+.dropzone p { margin: 6px 0; color: var(--muted); }
 .dropzone .primary-text { font-size: 18px; color: var(--ink); font-weight: 500; }
 input[type="file"] { display: none; }
-button { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background 0.2s; font-family: inherit; }
+button { background: var(--accent); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.2s; font-family: inherit; }
 button:hover:not(:disabled) { background: var(--accent-hover); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--border); }
 button.secondary:hover:not(:disabled) { background: rgba(0,0,0,0.05); }
 .progress { background: var(--border); border-radius: 8px; height: 8px; overflow: hidden; margin: 12px 0; }
 .progress-bar { background: var(--accent); height: 100%; transition: width 0.3s; width: 0%; }
-#textOutput { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); width: 100%; min-height: 200px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); resize: vertical; }
-.reader { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; min-height: 100px; user-select: text; max-height: 400px; overflow-y: auto; white-space: normal; }
+.reader { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; min-height: 80px; user-select: text; max-height: 50vh; overflow-y: auto; white-space: normal; }
 .reader .word { display: inline; padding: 2px 0; border-radius: 3px; transition: background 0.15s; }
 .reader .word.active { background: #ffd700; color: #000; font-weight: 600; box-shadow: 0 0 0 2px #ffd700; }
-.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 16px; }
-.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px; }
-.setting { display: flex; flex-direction: column; gap: 6px; }
+#textOutput { font-size: var(--font-size); line-height: var(--line-height); font-family: var(--font-family); width: 100%; min-height: 200px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); resize: vertical; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
+.setting { display: flex; flex-direction: column; gap: 4px; }
 .setting label { font-size: 14px; color: var(--muted); }
 .setting select, .setting input[type="range"] { padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); font-family: inherit; font-size: 14px; }
 .setting label:has(input[type="checkbox"]) { color: var(--ink); font-size: 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
@@ -65,8 +65,6 @@ button.secondary:hover:not(:disabled) { background: rgba(0,0,0,0.05); }
 .status.error { background: rgba(220,38,38,0.1); color: var(--danger); }
 .status.success { background: rgba(22,163,74,0.1); color: var(--success); }
 .hidden { display: none !important; }
-.log { background: #111; color: #0f0; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; padding: 12px; border-radius: 6px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; margin-top: 12px; line-height: 1.5; }
-.log-toggle { background: transparent; color: var(--muted); border: none; padding: 4px 0; cursor: pointer; font-size: 13px; text-decoration: underline; }
 @font-face {
   font-family: 'OpenDyslexic';
   src: url('https://cdn.jsdelivr.net/gh/antijingoist/open-dyslexic@master/compiled/OpenDyslexic-Regular.woff2') format('woff2');
@@ -75,12 +73,7 @@ button.secondary:hover:not(:disabled) { background: rgba(0,0,0,0.05); }
 }
 .dyslexic-font { --font-family: 'OpenDyslexic', sans-serif; }
 kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: monospace; }
-.hint { color: var(--muted); font-size: 13px; margin-top: 12px; }
-.preview-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
-.preview-compare > div { display: flex; flex-direction: column; }
-.preview-compare .label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-.preview-compare img, .preview-compare canvas { max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border); background: #fff; }
-@media (max-width: 600px) { .preview-compare { grid-template-columns: 1fr; } }
+.hint { color: var(--muted); font-size: 13px; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -89,30 +82,20 @@ kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
       <div>
         <h1>OCR Läshjälp</h1>
-        <p class="subtitle">Ladda upp en bild eller skannad sida. Texten tolkas och läses upp högt.</p>
+        <p class="subtitle">Ladda upp en bild — texten tolkas och läses upp högt.</p>
       </div>
-      <button id="installBtn" class="secondary hidden" style="white-space:nowrap;">📱 Installera</button>
+      <button id="installBtn" class="secondary hidden" style="white-space:nowrap;">Installera app</button>
     </div>
   </header>
 
   <div class="card">
-    <h2>1. Ladda upp bild</h2>
     <label for="fileInput" class="dropzone" id="dropzone">
       <p class="primary-text">Dra hit en bild eller klicka för att välja</p>
       <p>JPG, PNG, WEBP, BMP</p>
     </label>
     <input type="file" id="fileInput" accept="image/*">
-
-    <div class="preview-compare hidden" id="previewCompare">
-      <div>
-        <span class="label">Original</span>
-        <img id="preview" alt="Original">
-      </div>
-      <div>
-        <span class="label">Förbehandlad (skickas till OCR)</span>
-        <canvas id="previewCanvas"></canvas>
-      </div>
-    </div>
+    <canvas id="previewCanvas" class="hidden"></canvas>
+    <img id="preview" class="hidden" alt="">
 
     <div class="settings">
       <div class="setting">
@@ -127,19 +110,9 @@ kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size
         </select>
       </div>
       <div class="setting">
-        <label for="psmSelect">Sidtyp (PSM)</label>
-        <select id="psmSelect">
-          <option value="3">Auto (standard)</option>
-          <option value="6" selected>Enhetligt textblock (bra för böcker)</option>
-          <option value="4">En kolumn, varierande storlek</option>
-          <option value="1">Auto med OSD</option>
-          <option value="11">Gles text</option>
-        </select>
-      </div>
-      <div class="setting">
         <label>
           <input type="checkbox" id="preprocessToggle" checked>
-          Förbehandla bild (gråskala + kontrast)
+          Förbehandla bild
         </label>
       </div>
     </div>
@@ -152,28 +125,22 @@ kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size
       <div class="progress-bar" id="progressBar"></div>
     </div>
     <div id="status"></div>
-    <button class="log-toggle" id="logToggle">Visa teknisk logg</button>
-    <div class="log hidden" id="log"></div>
-    <p class="hint">Första gången ett språk används laddas ca 10-15 MB språkdata ner. Därefter cachas den lokalt.</p>
   </div>
 
-  <div class="card hidden" id="textCard">
-    <h2>2. Tolkad text (redigerbar)</h2>
-    <textarea id="textOutput" placeholder="Tolkad text visas här. Du kan redigera felaktigheter innan du lyssnar."></textarea>
-    <div class="controls">
-      <button id="loadToReaderBtn">Uppdatera läsaren</button>
-      <button id="copyBtn" class="secondary">Kopiera</button>
-      <button id="downloadBtn" class="secondary">Ladda ner .txt</button>
+  <div class="card hidden" id="resultCard">
+    <div id="readerView">
+      <div class="reader" id="reader"></div>
     </div>
-  </div>
-
-  <div class="card hidden" id="readerCard">
-    <h2>3. Lyssna</h2>
-    <div class="reader" id="reader"></div>
+    <div id="editView" class="hidden">
+      <textarea id="textOutput"></textarea>
+    </div>
     <div class="controls">
-      <button id="playBtn">▶ Spela</button>
-      <button id="pauseBtn" class="secondary" disabled>⏸ Paus</button>
-      <button id="stopBtn" class="secondary" disabled>⏹ Stopp</button>
+      <button id="playBtn">&#9654; Spela</button>
+      <button id="pauseBtn" class="secondary" disabled>&#9646;&#9646; Paus</button>
+      <button id="stopBtn" class="secondary" disabled>&#9632; Stopp</button>
+      <span style="flex:1"></span>
+      <button id="editToggleBtn" class="secondary">Redigera</button>
+      <button id="copyBtn" class="secondary">Kopiera</button>
     </div>
     <div class="settings">
       <div class="setting">
@@ -184,15 +151,10 @@ kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size
         <label for="rateSlider">Hastighet: <span id="rateValue">1.0</span>x</label>
         <input type="range" id="rateSlider" min="0.5" max="1.8" step="0.1" value="1.0">
       </div>
-      <div class="setting">
-        <label for="pitchSlider">Tonhöjd: <span id="pitchValue">1.0</span></label>
-        <input type="range" id="pitchSlider" min="0.5" max="1.5" step="0.1" value="1.0">
-      </div>
     </div>
   </div>
 
   <div class="card">
-    <h2>Läsbarhet</h2>
     <div class="settings">
       <div class="setting">
         <label for="fontSizeSlider">Textstorlek: <span id="fontSizeValue">20</span>px</label>
@@ -205,7 +167,7 @@ kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size
       <div class="setting">
         <label for="themeSelect">Tema</label>
         <select id="themeSelect">
-          <option value="light">Ljust (varmt papper)</option>
+          <option value="light">Ljust</option>
           <option value="dark">Mörkt</option>
           <option value="highcontrast">Hög kontrast</option>
         </select>
@@ -213,29 +175,28 @@ kbd { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size
       <div class="setting">
         <label>
           <input type="checkbox" id="dyslexicFontToggle">
-          OpenDyslexic-teckensnitt
+          OpenDyslexic
         </label>
       </div>
     </div>
-    <p class="hint">Tangentbordsgenvägar: <kbd>Mellanslag</kbd> spela/paus, <kbd>Esc</kbd> stopp</p>
+    <p class="hint"><kbd>Mellanslag</kbd> spela/paus &nbsp; <kbd>Esc</kbd> stopp</p>
   </div>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
 const fileInput = $('fileInput'), dropzone = $('dropzone'), preview = $('preview');
-const previewCompare = $('previewCompare'), previewCanvas = $('previewCanvas');
+const previewCanvas = $('previewCanvas');
 const ocrBtn = $('ocrBtn'), clearBtn = $('clearBtn');
-const langSelect = $('langSelect'), psmSelect = $('psmSelect'), preprocessToggle = $('preprocessToggle');
+const langSelect = $('langSelect'), preprocessToggle = $('preprocessToggle');
 const progressWrap = $('progressWrap'), progressBar = $('progressBar'), status = $('status');
-const logToggle = $('logToggle'), logEl = $('log');
-const textCard = $('textCard'), textOutput = $('textOutput');
-const loadToReaderBtn = $('loadToReaderBtn'), copyBtn = $('copyBtn'), downloadBtn = $('downloadBtn');
-const readerCard = $('readerCard'), reader = $('reader');
+const resultCard = $('resultCard'), textOutput = $('textOutput');
+const readerView = $('readerView'), editView = $('editView');
+const editToggleBtn = $('editToggleBtn'), copyBtn = $('copyBtn');
+const reader = $('reader');
 const playBtn = $('playBtn'), pauseBtn = $('pauseBtn'), stopBtn = $('stopBtn');
 const voiceSelect = $('voiceSelect');
 const rateSlider = $('rateSlider'), rateValue = $('rateValue');
-const pitchSlider = $('pitchSlider'), pitchValue = $('pitchValue');
 const fontSizeSlider = $('fontSizeSlider'), fontSizeValue = $('fontSizeValue');
 const lineHeightSlider = $('lineHeightSlider'), lineHeightValue = $('lineHeightValue');
 const themeSelect = $('themeSelect'), dyslexicFontToggle = $('dyslexicFontToggle');
@@ -243,22 +204,19 @@ const themeSelect = $('themeSelect'), dyslexicFontToggle = $('dyslexicFontToggle
 let currentImage = null;
 let wordSpans = [];
 let isPaused = false;
+let isEditing = false;
 
 function setStatus(msg, type = 'info') {
   status.innerHTML = msg ? `<div class="status ${type}">${msg}</div>` : '';
 }
-function log(msg) {
-  const time = new Date().toLocaleTimeString();
-  const line = `[${time}] ${typeof msg === 'object' ? JSON.stringify(msg) : msg}`;
-  logEl.textContent += line + '\n';
-  logEl.scrollTop = logEl.scrollHeight;
-  console.log('[OCR]', msg);
-}
 
-logToggle.addEventListener('click', () => {
-  logEl.classList.toggle('hidden');
-  logToggle.textContent = logEl.classList.contains('hidden') ? 'Visa teknisk logg' : 'Dölj teknisk logg';
-});
+function normalizeText(text) {
+  return text
+    .replace(/-\s*\n\s*/g, '')
+    .replace(/\n{2,}/g, '\n\n')
+    .replace(/([^\n])\n([^\n])/g, '$1 $2')
+    .replace(/ {2,}/g, ' ');
+}
 
 ['dragenter', 'dragover'].forEach(ev => {
   dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dragover'); });
@@ -280,15 +238,11 @@ function handleFile(file) {
     setStatus('Filen är inte en bild.', 'error');
     return;
   }
-  log(`Fil vald: ${file.name}, ${(file.size/1024).toFixed(0)} KB, typ ${file.type}`);
   currentImage = file;
   const fr = new FileReader();
   fr.onload = e => {
     preview.src = e.target.result;
-    preview.onload = () => {
-      previewCompare.classList.remove('hidden');
-      renderPreprocessedPreview();
-    };
+    preview.onload = () => renderPreprocessed();
   };
   fr.readAsDataURL(file);
   ocrBtn.disabled = false;
@@ -296,9 +250,9 @@ function handleFile(file) {
   setStatus(`Bild laddad: ${file.name}`, 'success');
 }
 
-preprocessToggle.addEventListener('change', renderPreprocessedPreview);
+preprocessToggle.addEventListener('change', renderPreprocessed);
 
-function renderPreprocessedPreview() {
+function renderPreprocessed() {
   if (!preview.src || !preview.complete || !preview.naturalWidth) return;
   const w = preview.naturalWidth, h = preview.naturalHeight;
   const targetWidth = Math.max(w, 1500);
@@ -328,18 +282,16 @@ function renderPreprocessedPreview() {
     }
     ctx.putImageData(imgData, 0, 0);
   }
-  log(`Förhandsvisning: ${sw}x${sh}px, förbehandling ${preprocessToggle.checked ? 'på' : 'av'}`);
 }
 
 clearBtn.addEventListener('click', () => {
   currentImage = null;
   preview.src = '';
-  previewCompare.classList.add('hidden');
   ocrBtn.disabled = true;
   clearBtn.disabled = true;
   fileInput.value = '';
+  resultCard.classList.add('hidden');
   setStatus('');
-  logEl.textContent = '';
 });
 
 ocrBtn.addEventListener('click', async () => {
@@ -348,21 +300,16 @@ ocrBtn.addEventListener('click', async () => {
   clearBtn.disabled = true;
   progressWrap.classList.remove('hidden');
   progressBar.style.width = '0%';
-  logEl.textContent = '';
   setStatus('Startar OCR-motor...', 'info');
 
   const langs = langSelect.value.split('+');
-  log(`Språk: ${langs.join(', ')}, PSM: ${psmSelect.value}`);
-
   let worker;
   try {
-    log('Skapar Tesseract worker...');
     worker = await Tesseract.createWorker(langs, 1, {
       workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
       corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1',
       langPath: 'https://tessdata.projectnaptha.com/4.0.0',
       logger: m => {
-        log(m);
         if (m.status === 'recognizing text') {
           progressBar.style.width = (m.progress * 100) + '%';
           setStatus(`Tolkar text... ${Math.round(m.progress * 100)}%`, 'info');
@@ -370,46 +317,49 @@ ocrBtn.addEventListener('click', async () => {
           setStatus(`${m.status}... ${Math.round(m.progress * 100)}%`, 'info');
         }
       },
-      errorHandler: err => log(`WORKER ERROR: ${err}`)
+      errorHandler: err => console.error('[OCR]', err)
     });
 
-    log('Worker skapad. Sätter parametrar...');
     await worker.setParameters({
-      tessedit_pageseg_mode: psmSelect.value,
+      tessedit_pageseg_mode: '6',
       preserve_interword_spaces: '1'
     });
 
-    log('Kör recognize() på förbehandlad canvas...');
     const { data } = await worker.recognize(previewCanvas);
-
-    log(`Klart. Text: ${data.text.length} tecken, konfidens: ${data.confidence}`);
-    log(`Första 200 tecken: "${data.text.substring(0, 200).replace(/\n/g, '\\n')}"`);
-
     const cleanText = data.text.trim();
     if (!cleanText) {
-      setStatus(`OCR körde klart men hittade ingen text. Konfidens: ${Math.round(data.confidence)}%. Prova: slå av/på förbehandling, byt PSM-läge, eller kontrollera att bilden är rak och skarp.`, 'error');
-      textOutput.value = '';
+      setStatus('Ingen text hittades. Prova att slå av/på förbehandling eller kontrollera bilden.', 'error');
     } else {
       textOutput.value = cleanText;
-      textCard.classList.remove('hidden');
-      setStatus(`Klart. ${cleanText.length} tecken, konfidens ${Math.round(data.confidence)}%.`, 'success');
       loadIntoReader();
-      readerCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      resultCard.classList.remove('hidden');
+      setStatus('', 'success');
+      resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   } catch (err) {
-    log(`FEL: ${err.message || err}`);
-    log(`Stack: ${err.stack || '(ingen stack)'}`);
-    setStatus(`Fel: ${err.message || err}. Se teknisk logg nedan.`, 'error');
-    logEl.classList.remove('hidden');
-    logToggle.textContent = 'Dölj teknisk logg';
+    setStatus(`Fel: ${err.message || err}`, 'error');
+    console.error('[OCR]', err);
   } finally {
     if (worker) {
-      try { await worker.terminate(); log('Worker avslutad.'); }
-      catch (e) { log(`Kunde ej avsluta worker: ${e}`); }
+      try { await worker.terminate(); } catch (e) {}
     }
     progressWrap.classList.add('hidden');
     ocrBtn.disabled = false;
     clearBtn.disabled = false;
+  }
+});
+
+editToggleBtn.addEventListener('click', () => {
+  isEditing = !isEditing;
+  if (isEditing) {
+    readerView.classList.add('hidden');
+    editView.classList.remove('hidden');
+    editToggleBtn.textContent = 'Klar';
+  } else {
+    loadIntoReader();
+    editView.classList.add('hidden');
+    readerView.classList.remove('hidden');
+    editToggleBtn.textContent = 'Redigera';
   }
 });
 
@@ -424,30 +374,12 @@ copyBtn.addEventListener('click', async () => {
   }
 });
 
-downloadBtn.addEventListener('click', () => {
-  const blob = new Blob([textOutput.value], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'ocr-text.txt';
-  a.click();
-  URL.revokeObjectURL(url);
-});
-
-loadToReaderBtn.addEventListener('click', loadIntoReader);
-
 function loadIntoReader() {
   const text = textOutput.value;
   if (!text.trim()) return;
   reader.innerHTML = '';
   wordSpans = [];
-  // Normalize: join hyphenated line breaks, collapse single newlines to spaces,
-  // keep paragraph breaks (double newlines)
-  const normalized = text
-    .replace(/-\s*\n\s*/g, '')      // "ex-\nempel" → "exempel"
-    .replace(/\n{2,}/g, '\n\n')     // normalize paragraph breaks
-    .replace(/([^\n])\n([^\n])/g, '$1 $2')  // single newline → space
-    .replace(/ {2,}/g, ' ');         // collapse multiple spaces
+  const normalized = normalizeText(text);
   const paragraphs = normalized.split(/\n\n+/);
   let charIndex = 0;
   paragraphs.forEach((para, pi) => {
@@ -467,12 +399,11 @@ function loadIntoReader() {
       charIndex += token.length;
     });
     if (pi < paragraphs.length - 1) {
-      charIndex += 2; // account for \n\n
+      charIndex += 2;
       reader.appendChild(document.createElement('br'));
       reader.appendChild(document.createElement('br'));
     }
   });
-  readerCard.classList.remove('hidden');
 }
 
 const TTS = (typeof window !== 'undefined' && window.speechSynthesis) ? window.speechSynthesis : null;
@@ -503,27 +434,23 @@ function populateVoices() {
 }
 
 if (TTS) {
-  try { populateVoices(); } catch (e) { log('populateVoices fel: ' + e.message); }
-  if (TTS.onvoiceschanged !== undefined) {
-    TTS.onvoiceschanged = populateVoices;
-  }
+  try { populateVoices(); } catch (e) {}
+  if (TTS.onvoiceschanged !== undefined) TTS.onvoiceschanged = populateVoices;
 } else {
-  log('VARNING: speechSynthesis ej tillgänglig i denna miljö. Ladda ner filen och öppna i Chrome/Edge för uppläsning.');
   playBtn.disabled = true;
-  playBtn.title = 'Uppläsning stöds inte i denna miljö';
   const opt = document.createElement('option');
-  opt.textContent = 'Ingen röst tillgänglig i denna miljö';
+  opt.textContent = 'Ingen röst tillgänglig';
   voiceSelect.appendChild(opt);
   voiceSelect.disabled = true;
 }
 
 playBtn.addEventListener('click', () => {
-  if (!TTS) { setStatus('Uppläsning stöds inte här. Ladda ner HTML-filen och öppna i Chrome/Edge.', 'error'); return; }
+  if (!TTS) { setStatus('Uppläsning stöds inte i denna webbläsare.', 'error'); return; }
   if (isPaused) {
     TTS.resume();
     isPaused = false;
     playBtn.disabled = true;
-    playBtn.textContent = '▶ Spela';
+    playBtn.textContent = '\u25b6 Spela';
     pauseBtn.disabled = false;
     return;
   }
@@ -531,17 +458,12 @@ playBtn.addEventListener('click', () => {
   if (!rawText) return;
   TTS.cancel();
   clearHighlight();
-  // Use same normalization as the reader for consistent highlighting
-  const ttsText = rawText
-    .replace(/-\s*\n\s*/g, '')
-    .replace(/\n{2,}/g, '\n\n')
-    .replace(/([^\n])\n([^\n])/g, '$1 $2')
-    .replace(/ {2,}/g, ' ');
+  const ttsText = normalizeText(rawText);
   const utter = new SpeechSynthesisUtterance(ttsText);
   const selectedVoice = TTS.getVoices().find(v => v.name === voiceSelect.value);
   if (selectedVoice) utter.voice = selectedVoice;
   utter.rate = parseFloat(rateSlider.value);
-  utter.pitch = parseFloat(pitchSlider.value);
+  utter.pitch = 1.0;
   utter.onboundary = (e) => {
     if (e.name === 'word' || e.charIndex !== undefined) highlightAt(e.charIndex);
   };
@@ -550,7 +472,7 @@ playBtn.addEventListener('click', () => {
     playBtn.disabled = false;
     pauseBtn.disabled = true;
     stopBtn.disabled = true;
-    playBtn.textContent = '▶ Spela';
+    playBtn.textContent = '\u25b6 Spela';
     isPaused = false;
   };
   utter.onerror = (e) => {
@@ -561,7 +483,7 @@ playBtn.addEventListener('click', () => {
     playBtn.disabled = false;
     pauseBtn.disabled = true;
     stopBtn.disabled = true;
-    playBtn.textContent = '▶ Spela';
+    playBtn.textContent = '\u25b6 Spela';
   };
   TTS.speak(utter);
   playBtn.disabled = true;
@@ -574,7 +496,7 @@ pauseBtn.addEventListener('click', () => {
   TTS.pause();
   isPaused = true;
   playBtn.disabled = false;
-  playBtn.textContent = '▶ Fortsätt';
+  playBtn.textContent = '\u25b6 Fortsätt';
   pauseBtn.disabled = true;
 });
 
@@ -585,7 +507,7 @@ stopBtn.addEventListener('click', () => {
   playBtn.disabled = false;
   pauseBtn.disabled = true;
   stopBtn.disabled = true;
-  playBtn.textContent = '▶ Spela';
+  playBtn.textContent = '\u25b6 Spela';
   isPaused = false;
 });
 
@@ -608,7 +530,6 @@ function highlightAt(charIndex) {
 function clearHighlight() { wordSpans.forEach(s => s.classList.remove('active')); }
 
 rateSlider.addEventListener('input', () => { rateValue.textContent = parseFloat(rateSlider.value).toFixed(1); });
-pitchSlider.addEventListener('input', () => { pitchValue.textContent = parseFloat(pitchSlider.value).toFixed(1); });
 fontSizeSlider.addEventListener('input', () => {
   document.documentElement.style.setProperty('--font-size', fontSizeSlider.value + 'px');
   fontSizeValue.textContent = fontSizeSlider.value;
@@ -637,18 +558,10 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-if (!TTS) {
-  setStatus('Uppläsning stöds inte i denna miljö. OCR fungerar, men för att lyssna på texten behöver du ladda ner HTML-filen och öppna den i Chrome eller Edge.', 'error');
-}
-
-log('App initialiserad. Tesseract.js laddad: ' + (typeof Tesseract !== 'undefined' ? 'ja' : 'NEJ') + '. TTS: ' + (TTS ? 'ja' : 'nej'));
-
 // ---- PWA ----
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(reg => log('Service worker registrerad: ' + reg.scope))
-      .catch(err => log('Service worker-registrering misslyckades: ' + err));
+    navigator.serviceWorker.register('sw.js').catch(() => {});
   });
 }
 
@@ -659,20 +572,17 @@ window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredInstallPrompt = e;
   installBtn.classList.remove('hidden');
-  log('App kan installeras (beforeinstallprompt).');
 });
 
 installBtn.addEventListener('click', async () => {
   if (!deferredInstallPrompt) return;
   deferredInstallPrompt.prompt();
-  const result = await deferredInstallPrompt.userChoice;
-  log('Install-prompt resultat: ' + result.outcome);
+  await deferredInstallPrompt.userChoice;
   deferredInstallPrompt = null;
   installBtn.classList.add('hidden');
 });
 
 window.addEventListener('appinstalled', () => {
-  log('App installerad.');
   installBtn.classList.add('hidden');
 });
 </script>
